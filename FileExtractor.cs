@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace UniversalFileExtractor
@@ -12,7 +14,6 @@ namespace UniversalFileExtractor
         public FileExtractor()
         {
             InitializeComponent();
-            // 禁用十六进制地址输入框
             if (textBoxHexAddress != null)
             {
                 textBoxHexAddress.Enabled = false;
@@ -271,10 +272,11 @@ namespace UniversalFileExtractor
             }
         }
 
-        static void ExtractContent(string filePath, byte[] startSequenceBytes, byte[]? endSequence = null, string outputFormat = "bin",
-                                   string extractMode = "all", string? startAddress = null, string? endAddress = null, int minRepeatCount = 0, RichTextBox? richTextBoxOutput = null)
+        static int ExtractContent(string filePath, byte[] startSequenceBytes, byte[]? endSequence = null, string outputFormat = "bin",
+                                   string extractMode = "all", string? startAddress = null, string? endAddress = null, int minRepeatCount = 0, Action<string>? progressCallback = null)
         {
             outputFormat = outputFormat ?? "bin";
+            int extractedCount = 0;
 
             try
             {
@@ -289,8 +291,8 @@ namespace UniversalFileExtractor
                     long endIndex = Convert.ToInt64(endAddress.Replace("0x", ""), 16);
                     if (startIndex > fileSize || endIndex > fileSize || startIndex > endIndex)
                     {
-                        richTextBoxOutput?.AppendText($"指定地址范围 {startAddress}-{endAddress} 无效，无法提取。\n");
-                        return;
+                        progressCallback?.Invoke($"指定地址范围 {startAddress}-{endAddress} 无效，无法提取。\n");
+                        return 0;
                     }
                     startRange = startIndex;
                     endRange = endIndex;
@@ -300,8 +302,8 @@ namespace UniversalFileExtractor
                     long targetIndex = Convert.ToInt64(startAddress.Replace("0x", ""), 16);
                     if (targetIndex > fileSize)
                     {
-                        richTextBoxOutput?.AppendText($"指定地址 {startAddress} 超出文件范围，无法提取。\n");
-                        return;
+                        progressCallback?.Invoke($"指定地址 {startAddress} 超出文件范围，无法提取。\n");
+                        return 0;
                     }
                     if (extractMode == "before")
                     {
@@ -315,12 +317,10 @@ namespace UniversalFileExtractor
                     }
                     else
                     {
-                        richTextBoxOutput?.AppendText("无效的提取模式参数\n");
-                        return;
+                        progressCallback?.Invoke("无效的提取模式参数\n");
+                        return 0;
                     }
                 }
-
-                int count = 0;
 
                 using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
                 using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
@@ -331,30 +331,31 @@ namespace UniversalFileExtractor
                         startIndexInContent = IndexOfSequence(accessor, startSequenceBytes, startIndexInContent, endRange);
                         if (startIndexInContent == -1)
                         {
-                            richTextBoxOutput?.AppendText($"在 {filePath} 中未找到更多起始序列\n");
+                            progressCallback?.Invoke($"在 {filePath} 中未找到更多起始序列\n");
                             break;
                         }
 
                         long endIndexInContent = FindEndIndex(accessor, startIndexInContent, endSequence, minRepeatCount, startSequenceBytes, endRange);
                         endIndexInContent = Math.Min(endIndexInContent, endRange);
 
-                        string newFilename = $"{Path.GetFileNameWithoutExtension(filePath)}_{count}.{outputFormat}";
+                        string newFilename = $"{Path.GetFileNameWithoutExtension(filePath)}_{extractedCount}.{outputFormat}";
                         string directoryName = Path.GetDirectoryName(filePath) ?? ".";
                         string newFilePath = Path.Combine(directoryName, newFilename);
 
-                        // Use streaming approach for large files
                         ExtractAndSaveSegment(filePath, newFilePath, startIndexInContent, endIndexInContent - startIndexInContent);
 
-                        richTextBoxOutput?.AppendText($"提取的内容保存为: {newFilePath}\n");
-                        count++;
+                        progressCallback?.Invoke($"提取的内容保存为: {newFilePath}\n");
+                        extractedCount++;
                         startIndexInContent = endIndexInContent;
                     }
                 }
             }
             catch (Exception e)
             {
-                richTextBoxOutput?.AppendText($"处理文件 {filePath} 时出错，错误信息：{e}\n");
+                progressCallback?.Invoke($"处理文件 {filePath} 时出错，错误信息：{e}\n");
             }
+
+            return extractedCount;
         }
 
         static void ExtractAndSaveSegment(string sourcePath, string destPath, long startPosition, long length)
@@ -423,7 +424,7 @@ namespace UniversalFileExtractor
             return bytes;
         }
 
-        private void buttonExtract_Click(object sender, EventArgs e)
+        private async void buttonExtract_Click(object sender, EventArgs e)
         {
             string directoryPath = textBoxDirectoryPath.Text;
             if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath))
@@ -431,6 +432,9 @@ namespace UniversalFileExtractor
                 MessageBox.Show($"错误: {directoryPath} 不是一个有效的目录。");
                 return;
             }
+
+            buttonExtract.Enabled = false;
+            richTextBoxOutput.AppendText("开始提取...\n");
 
             string extractMode = "";
             string? startAddress = null;
@@ -476,6 +480,7 @@ namespace UniversalFileExtractor
             if (string.IsNullOrEmpty(startSequenceInput))
             {
                 MessageBox.Show("起始字节序列为必填项，请输入。");
+                buttonExtract.Enabled = true;
                 return;
             }
             byte[] startSequenceBytes = ParseStartSequence(startSequenceInput);
@@ -496,13 +501,58 @@ namespace UniversalFileExtractor
             if (string.IsNullOrEmpty(outputFormat))
             {
                 MessageBox.Show("输出文件格式为必填项，请输入。");
+                buttonExtract.Enabled = true;
                 return;
             }
 
-            string[] files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
-            foreach (string file in files)
+            int totalExtractedFiles = 0;
+            int processedFiles = 0;
+
+            try
             {
-                ExtractContent(file, startSequenceBytes, endSequenceBytes, outputFormat, extractMode, startAddress, endAddress, minRepeatCount, richTextBoxOutput);
+                string[] files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+                totalExtractedFiles = 0;
+
+                await Task.Run(() =>
+                {
+                    foreach (string file in files)
+                    {
+                        int extractedCount = ExtractContent(
+                            file,
+                            startSequenceBytes,
+                            endSequenceBytes,
+                            outputFormat,
+                            extractMode,
+                            startAddress,
+                            endAddress,
+                            minRepeatCount,
+                            (message) =>
+                            {
+                                this.Invoke((MethodInvoker)delegate
+                                {
+                                    richTextBoxOutput.AppendText(message);
+                                });
+                            });
+
+                        totalExtractedFiles += extractedCount;
+                        processedFiles++;
+
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            richTextBoxOutput.AppendText($"已处理文件{processedFiles}/{files.Length}\n");
+                        });
+                    }
+                });
+
+                richTextBoxOutput.AppendText($"\n提取完成！总共从{processedFiles}个文件中提取了{totalExtractedFiles}个文件。\n");
+            }
+            catch (Exception ex)
+            {
+                richTextBoxOutput.AppendText($"提取过程中出错: {ex.Message}\n");
+            }
+            finally
+            {
+                buttonExtract.Enabled = true;
             }
         }
 
