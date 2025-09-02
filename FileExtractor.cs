@@ -14,6 +14,9 @@ namespace UniversalFileExtractor
         public FileExtractor()
         {
             InitializeComponent();
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
+
             if (textBoxHexAddress != null)
             {
                 textBoxHexAddress.Enabled = false;
@@ -338,7 +341,8 @@ namespace UniversalFileExtractor
                         long endIndexInContent = FindEndIndex(accessor, startIndexInContent, endSequence, minRepeatCount, startSequenceBytes, endRange);
                         endIndexInContent = Math.Min(endIndexInContent, endRange);
 
-                        string newFilename = $"{Path.GetFileNameWithoutExtension(filePath)}_{extractedCount}.{outputFormat}";
+                        string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                        string newFilename = $"{baseFileName}_{extractedCount + 1}.{outputFormat}";
                         string directoryName = Path.GetDirectoryName(filePath) ?? ".";
                         string newFilePath = Path.Combine(directoryName, newFilename);
 
@@ -418,9 +422,7 @@ namespace UniversalFileExtractor
             int length = hex.Length;
             byte[] bytes = new byte[length / 2];
             for (int i = 0; i < length; i += 2)
-            {
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            }
             return bytes;
         }
 
@@ -567,6 +569,28 @@ namespace UniversalFileExtractor
         {
             using (System.Windows.Forms.FolderBrowserDialog folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog())
             {
+                string inputPath = textBoxDirectoryPath.Text.Trim();
+
+                if (!string.IsNullOrEmpty(inputPath))
+                {
+                    if (Directory.Exists(inputPath))
+                    {
+                        folderBrowserDialog.SelectedPath = inputPath;
+                    }
+                    else if (File.Exists(inputPath))
+                    {
+                        string? directoryPath = Path.GetDirectoryName(inputPath);
+                        if (!string.IsNullOrEmpty(directoryPath) && Directory.Exists(directoryPath))
+                        {
+                            folderBrowserDialog.SelectedPath = directoryPath;
+                        }
+                    }
+                    else
+                    {
+                        folderBrowserDialog.SelectedPath = inputPath;
+                    }
+                }
+
                 if (folderBrowserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
                     textBoxDirectoryPath.Text = folderBrowserDialog.SelectedPath;
