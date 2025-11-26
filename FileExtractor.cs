@@ -459,216 +459,316 @@ namespace UniversalFileExtractor
 
         private async void buttonExtract_Click(object sender, EventArgs e)
         {
-            string directoryPath = textBoxDirectoryPath.Text;
-            if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath))
-            {
-                MessageBox.Show($"错误:{directoryPath}不是一个有效的目录。");
-                return;
-            }
-
-            if (selectedModeNode == null)
-            {
-                MessageBox.Show("请选择提取模式");
-                return;
-            }
-
-            buttonExtract.Enabled = false;
-            richTextBoxOutput.AppendText("开始提取...\n");
-
-            string extractMode = "";
-            string? startAddress = null;
-            string? endAddress = null;
-            string? startString = null;
-            string? endString = null;
-
-            int selectedMode = GetSelectedMode();
-            switch (selectedMode)
-            {
-                case 1:
-                    extractMode = "all";
-                    break;
-                case 2:
-                    extractMode = "before";
-                    if (textBoxHexAddress != null)
-                    {
-                        string hexAddress2 = textBoxHexAddress.Text;
-                        if (!string.IsNullOrEmpty(hexAddress2))
-                        {
-                            startAddress = hexAddress2;
-                        }
-                    }
-                    break;
-                case 3:
-                    extractMode = "after";
-                    if (textBoxHexAddress != null)
-                    {
-                        string hexAddress3 = textBoxHexAddress.Text;
-                        if (!string.IsNullOrEmpty(hexAddress3))
-                        {
-                            startAddress = hexAddress3;
-                        }
-                    }
-                    break;
-                case 4:
-                    extractMode = "between";
-                    startAddress = textBoxStartAddress.Text;
-                    endAddress = textBoxEndAddress.Text;
-                    break;
-                case 5:
-                    extractMode = "string_between";
-                    startString = textBoxStartString.Text;
-                    endString = textBoxEndString.Text;
-                    break;
-                default:
-                    break;
-            }
-
-            byte[] startSequenceBytes = Array.Empty<byte>();
-            if (selectedMode != 5)
-            {
-                string startSequenceInput = textBoxStartSequence.Text;
-                if (string.IsNullOrEmpty(startSequenceInput))
-                {
-                    MessageBox.Show("起始字节序列为必填项，请输入。");
-                    buttonExtract.Enabled = true;
-                    return;
-                }
-                startSequenceBytes = ParseStartSequence(startSequenceInput);
-            }
-
-            byte[]? endSequenceBytes = null;
-            if (selectedMode != 5)
-            {
-                string endSequenceInput = textBoxEndSequence.Text;
-                if (!string.IsNullOrEmpty(endSequenceInput))
-                {
-                    endSequenceBytes = ParseEndSequence(endSequenceInput);
-                }
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(startString))
-                {
-                    MessageBox.Show("起始字符串为必填项，请输入。");
-                    buttonExtract.Enabled = true;
-                    return;
-                }
-            }
-
-            string? offsetString = null;
-            byte[]? offsetSequence = null;
-            int offsetLength = 0;
-
-            if (!string.IsNullOrEmpty(textBoxOffsetLength.Text) && int.TryParse(textBoxOffsetLength.Text, out offsetLength))
-            {
-                if (radioButtonOffsetString.Checked && !string.IsNullOrEmpty(textBoxOffsetString.Text))
-                {
-                    offsetString = textBoxOffsetString.Text;
-                }
-                else if (radioButtonOffsetSequence.Checked && !string.IsNullOrEmpty(textBoxOffsetSequence.Text))
-                {
-                    offsetSequence = ParseStartSequence(textBoxOffsetSequence.Text);
-                }
-            }
-
-            int trimBytes = 0;
-            if (!string.IsNullOrEmpty(textBoxTrimBytes.Text) && int.TryParse(textBoxTrimBytes.Text, out trimBytes))
-            {
-                if (trimBytes < 0) trimBytes = 0;
-            }
-
-            byte? trimRepeatedByte = null;
-            if (!string.IsNullOrEmpty(textBoxTrimRepeatedByte.Text))
-            {
-                string trimByteText = textBoxTrimRepeatedByte.Text.Trim().ToUpper();
-                if (trimByteText.Length == 2 && IsHex(trimByteText))
-                {
-                    trimRepeatedByte = Convert.ToByte(trimByteText, 16);
-                }
-            }
-
-            string trimMode = "none"; 
-            if (comboBoxTrimMode.SelectedIndex >= 0)
-            {
-                switch (comboBoxTrimMode.SelectedIndex)
-                {
-                    case 0:
-                        trimMode = "none";
-                        break;
-                    case 1:
-                        trimMode = "bytes_only";
-                        break;
-                    case 2:
-                        trimMode = "repeated_only";
-                        break;
-                    case 3:
-                        trimMode = "both_bytes_first";
-                        break;
-                    case 4:
-                        trimMode = "both_repeated_first";
-                        break;
-                }
-            }
-
-            string outputFormat = textBoxOutputFormat.Text;
-            if (string.IsNullOrEmpty(outputFormat))
-            {
-                MessageBox.Show("输出文件格式为必填项，请输入。");
-                buttonExtract.Enabled = true;
-                return;
-            }
-
-            int totalExtractedFiles = 0;
-            int processedFiles = 0;
-
             try
             {
-                string[] files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
-                totalExtractedFiles = 0;
-
-                await Task.Run(() =>
+                string directoryPath = textBoxDirectoryPath.Text;
+                if (string.IsNullOrEmpty(directoryPath) || !Directory.Exists(directoryPath))
                 {
-                    foreach (string file in files)
+                    MessageBox.Show($"错误:{directoryPath}不是一个有效的目录。");
+                    return;
+                }
+
+                if (selectedModeNode == null)
+                {
+                    MessageBox.Show("请选择提取模式");
+                    return;
+                }
+
+                buttonExtract.Enabled = false;
+                richTextBoxOutput.AppendText("开始提取...\n");
+
+                string extractMode = "";
+                string? startAddress = null;
+                string? endAddress = null;
+                string? startString = null;
+                string? endString = null;
+
+                int selectedMode = GetSelectedMode();
+                switch (selectedMode)
+                {
+                    case 1:
+                        extractMode = "all";
+                        break;
+                    case 2:
+                        extractMode = "before";
+                        if (textBoxHexAddress != null)
+                        {
+                            string hexAddress2 = textBoxHexAddress.Text;
+                            if (!string.IsNullOrEmpty(hexAddress2))
+                            {
+                                startAddress = hexAddress2;
+                            }
+                        }
+                        break;
+                    case 3:
+                        extractMode = "after";
+                        if (textBoxHexAddress != null)
+                        {
+                            string hexAddress3 = textBoxHexAddress.Text;
+                            if (!string.IsNullOrEmpty(hexAddress3))
+                            {
+                                startAddress = hexAddress3;
+                            }
+                        }
+                        break;
+                    case 4:
+                        extractMode = "between";
+                        startAddress = textBoxStartAddress.Text;
+                        endAddress = textBoxEndAddress.Text;
+                        break;
+                    case 5:
+                        extractMode = "string_between";
+                        startString = textBoxStartString.Text;
+                        endString = textBoxEndString.Text;
+                        break;
+                    default:
+                        break;
+                }
+
+                byte[] startSequenceBytes = Array.Empty<byte>();
+                if (selectedMode != 5)
+                {
+                    string startSequenceInput = textBoxStartSequence.Text;
+                    if (string.IsNullOrEmpty(startSequenceInput))
                     {
-                        int extractedCount = ExtractContent(
-                            file,
-                            startSequenceBytes,
-                            endSequenceBytes,
-                            outputFormat,
-                            extractMode,
-                            startAddress,
-                            endAddress,
-                            startString,
-                            endString,
-                            offsetString,
-                            offsetSequence,
-                            offsetLength,
-                            trimBytes,
-                            trimRepeatedByte,
-                            trimMode,
-                            (message) =>
+                        MessageBox.Show("起始字节序列为必填项，请输入。");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+
+                    try
+                    {
+                        startSequenceBytes = ParseStartSequence(startSequenceInput);
+                    }
+                    catch (FormatException ex)
+                    {
+                        MessageBox.Show($"起始字节序列格式错误:{ex.Message}\n\n请输入有效的十六进制字节序列，例如:\n- 89 50 4E 47\n- 89504E47\n- 00*4(表示4个0x00字节)");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"解析起始字节序列时发生错误:{ex.Message}");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+                }
+
+                byte[]? endSequenceBytes = null;
+                if (selectedMode != 5)
+                {
+                    string endSequenceInput = textBoxEndSequence.Text;
+                    if (!string.IsNullOrEmpty(endSequenceInput))
+                    {
+                        try
+                        {
+                            endSequenceBytes = ParseEndSequence(endSequenceInput);
+                        }
+                        catch (FormatException ex)
+                        {
+                            MessageBox.Show($"结束字节序列格式错误:{ex.Message}\n\n请输入有效的十六进制字节序列");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"解析结束字节序列时发生错误:{ex.Message}");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(startString))
+                    {
+                        MessageBox.Show("起始字符串为必填项，请输入。");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+                }
+
+                string? offsetString = null;
+                byte[]? offsetSequence = null;
+                int offsetLength = 0;
+
+                if (!string.IsNullOrEmpty(textBoxOffsetLength.Text))
+                {
+                    if (!int.TryParse(textBoxOffsetLength.Text, out offsetLength) || offsetLength < 0)
+                    {
+                        MessageBox.Show("偏移数量必须是一个有效的非负整数");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+
+                    if (radioButtonOffsetString.Checked && !string.IsNullOrEmpty(textBoxOffsetString.Text))
+                    {
+                        offsetString = textBoxOffsetString.Text;
+                    }
+                    else if (radioButtonOffsetSequence.Checked && !string.IsNullOrEmpty(textBoxOffsetSequence.Text))
+                    {
+                        try
+                        {
+                            offsetSequence = ParseStartSequence(textBoxOffsetSequence.Text);
+                        }
+                        catch (FormatException ex)
+                        {
+                            MessageBox.Show($"偏移序列格式错误:{ex.Message}");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"解析偏移序列时发生错误:{ex.Message}");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
+                    }
+                }
+
+                int trimBytes = 0;
+                if (!string.IsNullOrEmpty(textBoxTrimBytes.Text))
+                {
+                    if (!int.TryParse(textBoxTrimBytes.Text, out trimBytes) || trimBytes < 0)
+                    {
+                        MessageBox.Show("排除文件尾字节数必须是一个有效的非负整数");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+                }
+
+                byte? trimRepeatedByte = null;
+                if (!string.IsNullOrEmpty(textBoxTrimRepeatedByte.Text))
+                {
+                    string trimByteText = textBoxTrimRepeatedByte.Text.Trim().ToUpper();
+                    if (trimByteText.Length == 2 && IsHex(trimByteText))
+                    {
+                        try
+                        {
+                            trimRepeatedByte = Convert.ToByte(trimByteText, 16);
+                        }
+                        catch (FormatException)
+                        {
+                            MessageBox.Show("排除文件尾重复字节必须是有效的十六进制字节(00-FF)");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("排除文件尾重复字节格式错误，请输入两位十六进制数(如:00, FF, 1A)");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+                }
+
+                string trimMode = "none";
+                if (comboBoxTrimMode.SelectedIndex >= 0)
+                {
+                    switch (comboBoxTrimMode.SelectedIndex)
+                    {
+                        case 0:
+                            trimMode = "none";
+                            break;
+                        case 1:
+                            trimMode = "bytes_only";
+                            break;
+                        case 2:
+                            trimMode = "repeated_only";
+                            break;
+                        case 3:
+                            trimMode = "both_bytes_first";
+                            break;
+                        case 4:
+                            trimMode = "both_repeated_first";
+                            break;
+                    }
+                }
+
+                string outputFormat = textBoxOutputFormat.Text;
+                if (string.IsNullOrEmpty(outputFormat))
+                {
+                    MessageBox.Show("输出文件格式为必填项，请输入。");
+                    buttonExtract.Enabled = true;
+                    return;
+                }
+
+                if (outputFormat.Any(c => Path.GetInvalidFileNameChars().Contains(c)))
+                {
+                    MessageBox.Show("输出文件格式包含非法字符");
+                    buttonExtract.Enabled = true;
+                    return;
+                }
+
+                int totalExtractedFiles = 0;
+                int processedFiles = 0;
+
+                try
+                {
+                    string[] files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+                    totalExtractedFiles = 0;
+
+                    await Task.Run(() =>
+                    {
+                        foreach (string file in files)
+                        {
+                            try
+                            {
+                                int extractedCount = ExtractContent(
+                                    file,
+                                    startSequenceBytes,
+                                    endSequenceBytes,
+                                    outputFormat,
+                                    extractMode,
+                                    startAddress,
+                                    endAddress,
+                                    startString,
+                                    endString,
+                                    offsetString,
+                                    offsetSequence,
+                                    offsetLength,
+                                    trimBytes,
+                                    trimRepeatedByte,
+                                    trimMode,
+                                    (message) =>
+                                    {
+                                        this.Invoke((MethodInvoker)delegate
+                                        {
+                                            richTextBoxOutput.AppendText(message);
+                                        });
+                                    });
+
+                                totalExtractedFiles += extractedCount;
+                                processedFiles++;
+
+                                this.Invoke((MethodInvoker)delegate
+                                {
+                                    richTextBoxOutput.AppendText($"已处理文件{processedFiles}/{files.Length}\n");
+                                });
+                            }
+                            catch (Exception ex)
                             {
                                 this.Invoke((MethodInvoker)delegate
                                 {
-                                    richTextBoxOutput.AppendText(message);
+                                    richTextBoxOutput.AppendText($"处理文件{file}时出错:{ex.Message}\n");
                                 });
-                            });
+                            }
+                        }
+                    });
 
-                        totalExtractedFiles += extractedCount;
-                        processedFiles++;
-
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            richTextBoxOutput.AppendText($"已处理文件{processedFiles}/{files.Length}\n");
-                        });
-                    }
-                });
-
-                richTextBoxOutput.AppendText($"\n提取完成!总共从{processedFiles}个文件中提取了{totalExtractedFiles}个文件。\n");
+                    richTextBoxOutput.AppendText($"\n提取完成!总共从{processedFiles}个文件中提取了{totalExtractedFiles}个文件。\n");
+                }
+                catch (Exception ex)
+                {
+                    richTextBoxOutput.AppendText($"提取过程中出错:{ex.Message}\n");
+                    MessageBox.Show($"提取过程中发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             catch (Exception ex)
             {
-                richTextBoxOutput.AppendText($"提取过程中出错:{ex.Message}\n");
+                string errorMessage = $"发生未预期的错误:\n{ex.Message}\n\n堆栈跟踪:\n{ex.StackTrace}";
+                richTextBoxOutput.AppendText($"{errorMessage}\n");
+                MessageBox.Show(errorMessage, "严重错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
@@ -689,40 +789,7 @@ namespace UniversalFileExtractor
         private void Form1_Load(object sender, EventArgs e)
         {
             richTextBoxOutput.Text = "";
-        }
-
-        private void buttonSelectFolder_Click(object sender, EventArgs e)
-        {
-            using (FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog())
-            {
-                string inputPath = textBoxDirectoryPath.Text.Trim();
-
-                if (!string.IsNullOrEmpty(inputPath))
-                {
-                    if (Directory.Exists(inputPath))
-                    {
-                        folderBrowserDialog.SelectedPath = inputPath;
-                    }
-                    else if (File.Exists(inputPath))
-                    {
-                        string? directoryPath = Path.GetDirectoryName(inputPath);
-                        if (!string.IsNullOrEmpty(directoryPath) && Directory.Exists(directoryPath))
-                        {
-                            folderBrowserDialog.SelectedPath = directoryPath;
-                        }
-                    }
-                    else
-                    {
-                        folderBrowserDialog.SelectedPath = inputPath;
-                    }
-                }
-
-                if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
-                {
-                    textBoxDirectoryPath.Text = folderBrowserDialog.SelectedPath;
-                }
-            }
-        }
+        }      
 
         private void buttonClearOutput_Click(object sender, EventArgs e)
         {
@@ -953,7 +1020,18 @@ namespace UniversalFileExtractor
                 long fileSize = fileInfo.Length;
                 long startRange = 0;
                 long endRange = fileSize;
+                string? directoryName = Path.GetDirectoryName(filePath);
+                if (directoryName == null)
+                {
+                    progressCallback?.Invoke($"无法获取文件目录: {filePath}\n");
+                    return 0;
+                }
 
+                string extractedDirectory = Path.Combine(directoryName, "Extracted");
+                if (!Directory.Exists(extractedDirectory))
+                {
+                    Directory.CreateDirectory(extractedDirectory);
+                }
                 if (extractMode == "string_between")
                 {
                     if (string.IsNullOrEmpty(startString))
@@ -1025,8 +1103,7 @@ namespace UniversalFileExtractor
 
                             string baseFileName = Path.GetFileNameWithoutExtension(filePath);
                             string newFilename = $"{baseFileName}_str_{extractedCount + 1}.{outputFormat}";
-                            string directoryName = Path.GetDirectoryName(filePath) ?? ".";
-                            string newFilePath = Path.Combine(directoryName, newFilename);
+                            string newFilePath = Path.Combine(extractedDirectory, newFilename);
 
                             File.WriteAllBytes(newFilePath, extractedData);
 
@@ -1137,9 +1214,7 @@ namespace UniversalFileExtractor
 
                         string baseFileName = Path.GetFileNameWithoutExtension(filePath);
                         string newFilename = $"{baseFileName}_{extractedCount + 1}.{outputFormat}";
-                        string directoryName = Path.GetDirectoryName(filePath) ?? ".";
-                        string newFilePath = Path.Combine(directoryName, newFilename);
-
+                        string newFilePath = Path.Combine(extractedDirectory, newFilename);
                         File.WriteAllBytes(newFilePath, extractedData);
 
                         progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
@@ -1188,11 +1263,38 @@ namespace UniversalFileExtractor
         }
         static byte[] StringToByteArray(string hex)
         {
-            int length = hex.Length;
-            byte[] bytes = new byte[length / 2];
-            for (int i = 0; i < length; i += 2)
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            return bytes;
+            if (string.IsNullOrEmpty(hex))
+                return Array.Empty<byte>();
+
+            hex = hex.Replace(" ", "").Replace("0x", "").Replace("0X", "");
+
+            if (hex.Length % 2 != 0)
+            {
+                throw new FormatException("十六进制字符串长度必须为偶数");
+            }
+
+            foreach (char c in hex)
+            {
+                if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+                {
+                    throw new FormatException($"包含无效的十六进制字符:'{c}'");
+                }
+            }
+
+            try
+            {
+                int length = hex.Length;
+                byte[] bytes = new byte[length / 2];
+                for (int i = 0; i < length; i += 2)
+                {
+                    bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+                }
+                return bytes;
+            }
+            catch (FormatException ex)
+            {
+                throw new FormatException($"无效的十六进制格式:{hex}", ex);
+            }
         }
         private void textBoxTrimBytes_TextChanged(object sender, EventArgs e)
         {
