@@ -1,19 +1,28 @@
-﻿namespace UniversalFileExtractor
+namespace UniversalFileExtractor
 {
     partial class FileExtractor
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        // 新增：声明选择文件夹按钮
         private System.Windows.Forms.Button buttonSelectFolder;
+        private System.Windows.Forms.TextBox textBoxStartString;
+        private System.Windows.Forms.Label labelStartString;
+        private System.Windows.Forms.TextBox textBoxEndString;
+        private System.Windows.Forms.Label labelEndString;
+        private System.Windows.Forms.TextBox textBoxOffsetString;
+        private System.Windows.Forms.TextBox textBoxOffsetSequence;
+        private System.Windows.Forms.TextBox textBoxOffsetLength;
+        private System.Windows.Forms.Label labelOffsetLength;
+        private System.Windows.Forms.RadioButton radioButtonOffsetString;
+        private System.Windows.Forms.RadioButton radioButtonOffsetSequence;
+        private System.Windows.Forms.TextBox textBoxTrimBytes;
+        private System.Windows.Forms.Label labelTrimBytes;
+        private System.Windows.Forms.TextBox textBoxTrimRepeatedByte;
+        private System.Windows.Forms.Label labelTrimRepeatedByte;
+        private System.Windows.Forms.ComboBox comboBoxTrimMode;
+        private System.Windows.Forms.Label labelTrimMode;
+        private System.Windows.Forms.TreeView treeViewModes;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -23,20 +32,19 @@
             base.Dispose(disposing);
         }
 
-        #region Windows Form Designer generated code
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             textBoxDirectoryPath = new TextBox();
             labelDirectoryPath = new Label();
-            radioButtonMode1 = new RadioButton();
-            radioButtonMode2 = new RadioButton();
-            radioButtonMode3 = new RadioButton();
-            radioButtonMode4 = new RadioButton();
+            buttonSelectFolder = new Button();
+            richTextBoxOutput = new RichTextBox();
+            buttonExtract = new Button();
+            buttonClearOutput = new Button();
+            inputPanel = new Panel();
+            comboBoxTrimMode = new ComboBox();
+            labelTrimMode = new Label();
+            textBoxHexAddress = new TextBox();
+            labelHexAddress = new Label();
             textBoxStartAddress = new TextBox();
             labelStartAddress = new Label();
             textBoxEndAddress = new TextBox();
@@ -45,290 +53,413 @@
             labelStartSequence = new Label();
             textBoxEndSequence = new TextBox();
             labelEndSequence = new Label();
-            textBoxMinRepeatCount = new TextBox();
-            labelMinRepeatCount = new Label();
+            textBoxStartString = new TextBox();
+            labelStartString = new Label();
+            textBoxEndString = new TextBox();
+            labelEndString = new Label();
             textBoxOutputFormat = new TextBox();
             labelOutputFormat = new Label();
-            buttonExtract = new Button();
-            richTextBoxOutput = new RichTextBox();
-            textBoxHexAddress = new TextBox();
-            labelHexAddress = new Label();
-            buttonSelectFolder = new Button();
+            radioButtonOffsetString = new RadioButton();
+            radioButtonOffsetSequence = new RadioButton();
+            textBoxOffsetString = new TextBox();
+            textBoxOffsetSequence = new TextBox();
+            textBoxOffsetLength = new TextBox();
+            labelOffsetLength = new Label();
+            textBoxTrimBytes = new TextBox();
+            labelTrimBytes = new Label();
+            textBoxTrimRepeatedByte = new TextBox();
+            labelTrimRepeatedByte = new Label();
+            treeViewModes = new TreeView();
+            inputPanel.SuspendLayout();
             SuspendLayout();
             // 
             // textBoxDirectoryPath
             // 
-            textBoxDirectoryPath.Location = new Point(82, 16);
-            textBoxDirectoryPath.Margin = new Padding(4);
+            textBoxDirectoryPath.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBoxDirectoryPath.ForeColor = SystemColors.GrayText;
+            textBoxDirectoryPath.Location = new Point(88, 12);
             textBoxDirectoryPath.Name = "textBoxDirectoryPath";
-            textBoxDirectoryPath.Size = new Size(556, 23);
+            textBoxDirectoryPath.Size = new Size(681, 23);
             textBoxDirectoryPath.TabIndex = 0;
+            textBoxDirectoryPath.Text = "拖放文件夹到此或点击选择文件夹...";
             textBoxDirectoryPath.TextChanged += textBoxDirectoryPath_TextChanged;
+            textBoxDirectoryPath.Enter += TextBoxDirectoryPath_Enter;
+            textBoxDirectoryPath.Leave += TextBoxDirectoryPath_Leave;
             // 
             // labelDirectoryPath
             // 
             labelDirectoryPath.AutoSize = true;
-            labelDirectoryPath.Location = new Point(14, 20);
-            labelDirectoryPath.Margin = new Padding(4, 0, 4, 0);
+            labelDirectoryPath.ForeColor = Color.DodgerBlue;
+            labelDirectoryPath.Location = new Point(12, 15);
             labelDirectoryPath.Name = "labelDirectoryPath";
-            labelDirectoryPath.Size = new Size(68, 17);
+            labelDirectoryPath.Size = new Size(80, 17);
             labelDirectoryPath.TabIndex = 1;
-            labelDirectoryPath.Text = "输入路径：";
-            // 
-            // radioButtonMode1
-            // 
-            radioButtonMode1.AutoSize = true;
-            radioButtonMode1.Location = new Point(14, 55);
-            radioButtonMode1.Margin = new Padding(4);
-            radioButtonMode1.Name = "radioButtonMode1";
-            radioButtonMode1.Size = new Size(117, 21);
-            radioButtonMode1.TabIndex = 2;
-            radioButtonMode1.TabStop = true;
-            radioButtonMode1.Text = "模式1：正常提取";
-            radioButtonMode1.UseVisualStyleBackColor = true;
-            radioButtonMode1.CheckedChanged += radioButtonMode1_CheckedChanged;
-            // 
-            // radioButtonMode2
-            // 
-            radioButtonMode2.AutoSize = true;
-            radioButtonMode2.Location = new Point(139, 55);
-            radioButtonMode2.Margin = new Padding(4);
-            radioButtonMode2.Name = "radioButtonMode2";
-            radioButtonMode2.Size = new Size(189, 21);
-            radioButtonMode2.TabIndex = 3;
-            radioButtonMode2.TabStop = true;
-            radioButtonMode2.Text = "模式2：提取指定地址前的内容";
-            radioButtonMode2.UseVisualStyleBackColor = true;
-            radioButtonMode2.CheckedChanged += radioButtonMode2_CheckedChanged;
-            // 
-            // radioButtonMode3
-            // 
-            radioButtonMode3.AutoSize = true;
-            radioButtonMode3.Location = new Point(336, 55);
-            radioButtonMode3.Margin = new Padding(4);
-            radioButtonMode3.Name = "radioButtonMode3";
-            radioButtonMode3.Size = new Size(189, 21);
-            radioButtonMode3.TabIndex = 4;
-            radioButtonMode3.TabStop = true;
-            radioButtonMode3.Text = "模式3：提取指定地址后的内容";
-            radioButtonMode3.UseVisualStyleBackColor = true;
-            radioButtonMode3.CheckedChanged += radioButtonMode3_CheckedChanged;
-            // 
-            // radioButtonMode4
-            // 
-            radioButtonMode4.AutoSize = true;
-            radioButtonMode4.Location = new Point(533, 55);
-            radioButtonMode4.Margin = new Padding(4);
-            radioButtonMode4.Name = "radioButtonMode4";
-            radioButtonMode4.Size = new Size(201, 21);
-            radioButtonMode4.TabIndex = 5;
-            radioButtonMode4.TabStop = true;
-            radioButtonMode4.Text = "模式4：从两个地址之间提取数据";
-            radioButtonMode4.UseVisualStyleBackColor = true;
-            radioButtonMode4.CheckedChanged += radioButtonMode4_CheckedChanged;
-            // 
-            // textBoxStartAddress
-            // 
-            textBoxStartAddress.Location = new Point(320, 116);
-            textBoxStartAddress.Margin = new Padding(4);
-            textBoxStartAddress.Name = "textBoxStartAddress";
-            textBoxStartAddress.Size = new Size(414, 23);
-            textBoxStartAddress.TabIndex = 6;
-            // 
-            // labelStartAddress
-            // 
-            labelStartAddress.AutoSize = true;
-            labelStartAddress.Location = new Point(10, 119);
-            labelStartAddress.Margin = new Padding(4, 0, 4, 0);
-            labelStartAddress.Name = "labelStartAddress";
-            labelStartAddress.Size = new Size(92, 17);
-            labelStartAddress.TabIndex = 7;
-            labelStartAddress.Text = "请输入起始地址";
-            // 
-            // textBoxEndAddress
-            // 
-            textBoxEndAddress.Location = new Point(320, 145);
-            textBoxEndAddress.Margin = new Padding(4);
-            textBoxEndAddress.Name = "textBoxEndAddress";
-            textBoxEndAddress.Size = new Size(414, 23);
-            textBoxEndAddress.TabIndex = 8;
-            // 
-            // labelEndAddress
-            // 
-            labelEndAddress.AutoSize = true;
-            labelEndAddress.Location = new Point(10, 148);
-            labelEndAddress.Margin = new Padding(4, 0, 4, 0);
-            labelEndAddress.Name = "labelEndAddress";
-            labelEndAddress.Size = new Size(92, 17);
-            labelEndAddress.TabIndex = 9;
-            labelEndAddress.Text = "请输入结束地址";
-            // 
-            // textBoxStartSequence
-            // 
-            textBoxStartSequence.Location = new Point(320, 178);
-            textBoxStartSequence.Margin = new Padding(4);
-            textBoxStartSequence.Name = "textBoxStartSequence";
-            textBoxStartSequence.Size = new Size(414, 23);
-            textBoxStartSequence.TabIndex = 10;
-            // 
-            // labelStartSequence
-            // 
-            labelStartSequence.AutoSize = true;
-            labelStartSequence.Location = new Point(10, 181);
-            labelStartSequence.Margin = new Padding(4, 0, 4, 0);
-            labelStartSequence.Name = "labelStartSequence";
-            labelStartSequence.Size = new Size(310, 17);
-            labelStartSequence.TabIndex = 11;
-            labelStartSequence.Text = "请输入起始序列，以空格分隔，使用*表示重复，如00*16";
-            // 
-            // textBoxEndSequence
-            // 
-            textBoxEndSequence.Location = new Point(320, 210);
-            textBoxEndSequence.Margin = new Padding(4);
-            textBoxEndSequence.Name = "textBoxEndSequence";
-            textBoxEndSequence.Size = new Size(414, 23);
-            textBoxEndSequence.TabIndex = 12;
-            textBoxEndSequence.TextChanged += textBoxEndSequence_TextChanged;
-            // 
-            // labelEndSequence
-            // 
-            labelEndSequence.AutoSize = true;
-            labelEndSequence.Location = new Point(10, 213);
-            labelEndSequence.Margin = new Padding(4, 0, 4, 0);
-            labelEndSequence.Name = "labelEndSequence";
-            labelEndSequence.Size = new Size(303, 17);
-            labelEndSequence.TabIndex = 13;
-            labelEndSequence.Text = "请输入结束序列，以空格分割，使用*表示重复，如00*4";
-            // 
-            // textBoxMinRepeatCount
-            // 
-            textBoxMinRepeatCount.Enabled = false;
-            textBoxMinRepeatCount.Location = new Point(320, 241);
-            textBoxMinRepeatCount.Margin = new Padding(4);
-            textBoxMinRepeatCount.Name = "textBoxMinRepeatCount";
-            textBoxMinRepeatCount.Size = new Size(414, 23);
-            textBoxMinRepeatCount.TabIndex = 14;
-            // 
-            // labelMinRepeatCount
-            // 
-            labelMinRepeatCount.AutoSize = true;
-            labelMinRepeatCount.Location = new Point(10, 244);
-            labelMinRepeatCount.Margin = new Padding(4, 0, 4, 0);
-            labelMinRepeatCount.Name = "labelMinRepeatCount";
-            labelMinRepeatCount.Size = new Size(212, 17);
-            labelMinRepeatCount.TabIndex = 15;
-            labelMinRepeatCount.Text = "请输入最小重复字节数量作为结束条件";
-            // 
-            // textBoxOutputFormat
-            // 
-            textBoxOutputFormat.Location = new Point(320, 274);
-            textBoxOutputFormat.Margin = new Padding(4);
-            textBoxOutputFormat.Name = "textBoxOutputFormat";
-            textBoxOutputFormat.Size = new Size(414, 23);
-            textBoxOutputFormat.TabIndex = 16;
-            // 
-            // labelOutputFormat
-            // 
-            labelOutputFormat.AutoSize = true;
-            labelOutputFormat.Location = new Point(10, 277);
-            labelOutputFormat.Margin = new Padding(4, 0, 4, 0);
-            labelOutputFormat.Name = "labelOutputFormat";
-            labelOutputFormat.Size = new Size(140, 17);
-            labelOutputFormat.TabIndex = 17;
-            labelOutputFormat.Text = "请输入要保存的文件格式";
-            // 
-            // buttonExtract
-            // 
-            buttonExtract.Location = new Point(14, 312);
-            buttonExtract.Margin = new Padding(4);
-            buttonExtract.Name = "buttonExtract";
-            buttonExtract.Size = new Size(88, 72);
-            buttonExtract.TabIndex = 18;
-            buttonExtract.Text = "提取";
-            buttonExtract.UseVisualStyleBackColor = true;
-            buttonExtract.Click += buttonExtract_Click;
-            // 
-            // richTextBoxOutput
-            // 
-            richTextBoxOutput.Location = new Point(126, 312);
-            richTextBoxOutput.Margin = new Padding(4);
-            richTextBoxOutput.Name = "richTextBoxOutput";
-            richTextBoxOutput.Size = new Size(608, 215);
-            richTextBoxOutput.TabIndex = 19;
-            richTextBoxOutput.Text = "";
-            // 
-            // textBoxHexAddress
-            // 
-            textBoxHexAddress.Location = new Point(320, 85);
-            textBoxHexAddress.Margin = new Padding(4);
-            textBoxHexAddress.Name = "textBoxHexAddress";
-            textBoxHexAddress.Size = new Size(414, 23);
-            textBoxHexAddress.TabIndex = 20;
-            // 
-            // labelHexAddress
-            // 
-            labelHexAddress.AutoSize = true;
-            labelHexAddress.Location = new Point(10, 89);
-            labelHexAddress.Margin = new Padding(4, 0, 4, 0);
-            labelHexAddress.Name = "labelHexAddress";
-            labelHexAddress.Size = new Size(106, 17);
-            labelHexAddress.TabIndex = 21;
-            labelHexAddress.Text = "请输入16进制地址";
+            labelDirectoryPath.Text = "文件夹路径";
             // 
             // buttonSelectFolder
             // 
-            buttonSelectFolder.Location = new Point(646, 16);
-            buttonSelectFolder.Margin = new Padding(4);
+            buttonSelectFolder.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            buttonSelectFolder.ForeColor = Color.Lime;
+            buttonSelectFolder.Location = new Point(775, 12);
             buttonSelectFolder.Name = "buttonSelectFolder";
             buttonSelectFolder.Size = new Size(88, 23);
-            buttonSelectFolder.TabIndex = 22;
+            buttonSelectFolder.TabIndex = 1;
             buttonSelectFolder.Text = "选择文件夹";
             buttonSelectFolder.UseVisualStyleBackColor = true;
             buttonSelectFolder.Click += buttonSelectFolder_Click;
             // 
-            // Form1
+            // richTextBoxOutput
             // 
-            ClientSize = new Size(763, 545);
-            Controls.Add(labelHexAddress);
-            Controls.Add(textBoxHexAddress);
-            Controls.Add(richTextBoxOutput);
+            richTextBoxOutput.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            richTextBoxOutput.Location = new Point(12, 424);
+            richTextBoxOutput.Name = "richTextBoxOutput";
+            richTextBoxOutput.Size = new Size(851, 321);
+            richTextBoxOutput.TabIndex = 4;
+            richTextBoxOutput.Text = "";
+            // 
+            // buttonExtract
+            // 
+            buttonExtract.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            buttonExtract.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold);
+            buttonExtract.ForeColor = Color.Lime;
+            buttonExtract.Location = new Point(775, 41);
+            buttonExtract.Name = "buttonExtract";
+            buttonExtract.Size = new Size(88, 73);
+            buttonExtract.TabIndex = 3;
+            buttonExtract.Text = "开始提取";
+            buttonExtract.UseVisualStyleBackColor = true;
+            buttonExtract.Click += buttonExtract_Click;
+            // 
+            // buttonClearOutput
+            // 
+            buttonClearOutput.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            buttonClearOutput.Font = new Font("Microsoft Sans Serif", 9F, FontStyle.Bold);
+            buttonClearOutput.ForeColor = Color.Orange;
+            buttonClearOutput.Location = new Point(775, 138);
+            buttonClearOutput.Name = "buttonClearOutput";
+            buttonClearOutput.Size = new Size(88, 30);
+            buttonClearOutput.TabIndex = 5;
+            buttonClearOutput.Text = "清空日志";
+            buttonClearOutput.UseVisualStyleBackColor = true;
+            buttonClearOutput.Click += buttonClearOutput_Click;
+            // 
+            // inputPanel
+            // 
+            inputPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            inputPanel.BorderStyle = BorderStyle.FixedSingle;
+            inputPanel.Controls.Add(comboBoxTrimMode);
+            inputPanel.Controls.Add(labelTrimMode);
+            inputPanel.Controls.Add(textBoxHexAddress);
+            inputPanel.Controls.Add(labelHexAddress);
+            inputPanel.Controls.Add(textBoxStartAddress);
+            inputPanel.Controls.Add(labelStartAddress);
+            inputPanel.Controls.Add(textBoxEndAddress);
+            inputPanel.Controls.Add(labelEndAddress);
+            inputPanel.Controls.Add(textBoxStartSequence);
+            inputPanel.Controls.Add(labelStartSequence);
+            inputPanel.Controls.Add(textBoxEndSequence);
+            inputPanel.Controls.Add(labelEndSequence);
+            inputPanel.Controls.Add(textBoxStartString);
+            inputPanel.Controls.Add(labelStartString);
+            inputPanel.Controls.Add(textBoxEndString);
+            inputPanel.Controls.Add(labelEndString);
+            inputPanel.Controls.Add(textBoxOutputFormat);
+            inputPanel.Controls.Add(labelOutputFormat);
+            inputPanel.Controls.Add(radioButtonOffsetString);
+            inputPanel.Controls.Add(radioButtonOffsetSequence);
+            inputPanel.Controls.Add(textBoxOffsetString);
+            inputPanel.Controls.Add(textBoxOffsetSequence);
+            inputPanel.Controls.Add(textBoxOffsetLength);
+            inputPanel.Controls.Add(labelOffsetLength);
+            inputPanel.Controls.Add(textBoxTrimBytes);
+            inputPanel.Controls.Add(labelTrimBytes);
+            inputPanel.Controls.Add(textBoxTrimRepeatedByte);
+            inputPanel.Controls.Add(labelTrimRepeatedByte);
+            inputPanel.Location = new Point(283, 41);
+            inputPanel.Name = "inputPanel";
+            inputPanel.Size = new Size(486, 377);
+            inputPanel.TabIndex = 7;
+            // 
+            // comboBoxTrimMode
+            // 
+            comboBoxTrimMode.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxTrimMode.FormattingEnabled = true;
+            comboBoxTrimMode.Items.AddRange(new object[] { "无","仅排除字节数", "仅排除重复字节", "两者都排除(字节数量优先)", "两者都排除(重复字节优先)" });
+            comboBoxTrimMode.Location = new Point(130, 351);
+            comboBoxTrimMode.Name = "comboBoxTrimMode";
+            comboBoxTrimMode.Size = new Size(202, 25);
+            comboBoxTrimMode.TabIndex = 44;
+            comboBoxTrimMode.SelectedIndexChanged += ComboBoxTrimMode_SelectedIndexChanged;
+            // 
+            // labelTrimMode
+            // 
+            labelTrimMode.AutoSize = true;
+            labelTrimMode.ForeColor = Color.Red;
+            labelTrimMode.Location = new Point(3, 353);
+            labelTrimMode.Name = "labelTrimMode";
+            labelTrimMode.Size = new Size(56, 17);
+            labelTrimMode.TabIndex = 45;
+            labelTrimMode.Text = "排除模式";
+            // 
+            // textBoxHexAddress
+            // 
+            textBoxHexAddress.Location = new Point(130, 130);
+            textBoxHexAddress.Name = "textBoxHexAddress";
+            textBoxHexAddress.Size = new Size(240, 23);
+            textBoxHexAddress.TabIndex = 0;
+            // 
+            // labelHexAddress
+            // 
+            labelHexAddress.AutoSize = true;
+            labelHexAddress.ForeColor = Color.Cyan;
+            labelHexAddress.Location = new Point(3, 133);
+            labelHexAddress.Name = "labelHexAddress";
+            labelHexAddress.Size = new Size(70, 17);
+            labelHexAddress.TabIndex = 21;
+            labelHexAddress.Text = "16进制地址";
+            labelHexAddress.Click += labelHexAddress_Click;
+            // 
+            // textBoxStartAddress
+            // 
+            textBoxStartAddress.Location = new Point(130, 101);
+            textBoxStartAddress.Name = "textBoxStartAddress";
+            textBoxStartAddress.Size = new Size(240, 23);
+            textBoxStartAddress.TabIndex = 0;
+            // 
+            // labelStartAddress
+            // 
+            labelStartAddress.AutoSize = true;
+            labelStartAddress.ForeColor = Color.Cyan;
+            labelStartAddress.Location = new Point(3, 104);
+            labelStartAddress.Name = "labelStartAddress";
+            labelStartAddress.Size = new Size(56, 17);
+            labelStartAddress.TabIndex = 7;
+            labelStartAddress.Text = "起始地址";
+            // 
+            // textBoxEndAddress
+            // 
+            textBoxEndAddress.Location = new Point(130, 159);
+            textBoxEndAddress.Name = "textBoxEndAddress";
+            textBoxEndAddress.Size = new Size(240, 23);
+            textBoxEndAddress.TabIndex = 1;
+            // 
+            // labelEndAddress
+            // 
+            labelEndAddress.AutoSize = true;
+            labelEndAddress.ForeColor = Color.Cyan;
+            labelEndAddress.Location = new Point(3, 162);
+            labelEndAddress.Name = "labelEndAddress";
+            labelEndAddress.Size = new Size(56, 17);
+            labelEndAddress.TabIndex = 9;
+            labelEndAddress.Text = "结束地址";
+            // 
+            // textBoxStartSequence
+            // 
+            textBoxStartSequence.Location = new Point(130, 43);
+            textBoxStartSequence.Name = "textBoxStartSequence";
+            textBoxStartSequence.Size = new Size(240, 23);
+            textBoxStartSequence.TabIndex = 0;
+            // 
+            // labelStartSequence
+            // 
+            labelStartSequence.AutoSize = true;
+            labelStartSequence.ForeColor = Color.Fuchsia;
+            labelStartSequence.Location = new Point(3, 46);
+            labelStartSequence.Name = "labelStartSequence";
+            labelStartSequence.Size = new Size(80, 17);
+            labelStartSequence.TabIndex = 11;
+            labelStartSequence.Text = "起始字节序列";
+            // 
+            // textBoxEndSequence
+            // 
+            textBoxEndSequence.Location = new Point(130, 72);
+            textBoxEndSequence.Name = "textBoxEndSequence";
+            textBoxEndSequence.Size = new Size(240, 23);
+            textBoxEndSequence.TabIndex = 1;
+            // 
+            // labelEndSequence
+            // 
+            labelEndSequence.AutoSize = true;
+            labelEndSequence.ForeColor = Color.Fuchsia;
+            labelEndSequence.Location = new Point(3, 75);
+            labelEndSequence.Name = "labelEndSequence";
+            labelEndSequence.Size = new Size(80, 17);
+            labelEndSequence.TabIndex = 13;
+            labelEndSequence.Text = "结束字节序列";
+            // 
+            // textBoxStartString
+            // 
+            textBoxStartString.Enabled = false;
+            textBoxStartString.Location = new Point(130, 187);
+            textBoxStartString.Name = "textBoxStartString";
+            textBoxStartString.Size = new Size(240, 23);
+            textBoxStartString.TabIndex = 0;
+            // 
+            // labelStartString
+            // 
+            labelStartString.AutoSize = true;
+            labelStartString.ForeColor = Color.FromArgb(255, 128, 0);
+            labelStartString.Location = new Point(3, 190);
+            labelStartString.Name = "labelStartString";
+            labelStartString.Size = new Size(68, 17);
+            labelStartString.TabIndex = 25;
+            labelStartString.Text = "起始字符串";
+            // 
+            // textBoxEndString
+            // 
+            textBoxEndString.Enabled = false;
+            textBoxEndString.Location = new Point(130, 216);
+            textBoxEndString.Name = "textBoxEndString";
+            textBoxEndString.Size = new Size(240, 23);
+            textBoxEndString.TabIndex = 1;
+            // 
+            // labelEndString
+            // 
+            labelEndString.AutoSize = true;
+            labelEndString.ForeColor = Color.FromArgb(255, 128, 0);
+            labelEndString.Location = new Point(3, 219);
+            labelEndString.Name = "labelEndString";
+            labelEndString.Size = new Size(68, 17);
+            labelEndString.TabIndex = 27;
+            labelEndString.Text = "结束字符串";
+            // 
+            // textBoxOutputFormat
+            // 
+            textBoxOutputFormat.Location = new Point(130, 14);
+            textBoxOutputFormat.Name = "textBoxOutputFormat";
+            textBoxOutputFormat.Size = new Size(240, 23);
+            textBoxOutputFormat.TabIndex = 0;
+            // 
+            // labelOutputFormat
+            // 
+            labelOutputFormat.AutoSize = true;
+            labelOutputFormat.ForeColor = Color.Black;
+            labelOutputFormat.Location = new Point(3, 17);
+            labelOutputFormat.Name = "labelOutputFormat";
+            labelOutputFormat.Size = new Size(80, 17);
+            labelOutputFormat.TabIndex = 17;
+            labelOutputFormat.Text = "输出文件格式";
+            // 
+            // radioButtonOffsetString
+            // 
+            radioButtonOffsetString.AutoSize = true;
+            radioButtonOffsetString.Location = new Point(3, 245);
+            radioButtonOffsetString.Name = "radioButtonOffsetString";
+            radioButtonOffsetString.Size = new Size(110, 21);
+            radioButtonOffsetString.TabIndex = 28;
+            radioButtonOffsetString.Text = "偏移验证字符串";
+            radioButtonOffsetString.UseVisualStyleBackColor = true;
+            radioButtonOffsetString.CheckedChanged += RadioButtonOffset_CheckedChanged;
+            // 
+            // radioButtonOffsetSequence
+            // 
+            radioButtonOffsetSequence.AutoSize = true;
+            radioButtonOffsetSequence.Location = new Point(3, 272);
+            radioButtonOffsetSequence.Name = "radioButtonOffsetSequence";
+            radioButtonOffsetSequence.Size = new Size(122, 21);
+            radioButtonOffsetSequence.TabIndex = 29;
+            radioButtonOffsetSequence.Text = "偏移验证字节序列";
+            radioButtonOffsetSequence.UseVisualStyleBackColor = true;
+            radioButtonOffsetSequence.CheckedChanged += RadioButtonOffset_CheckedChanged;
+            // 
+            // textBoxOffsetString
+            // 
+            textBoxOffsetString.Enabled = false;
+            textBoxOffsetString.Location = new Point(131, 244);
+            textBoxOffsetString.Name = "textBoxOffsetString";
+            textBoxOffsetString.Size = new Size(239, 23);
+            textBoxOffsetString.TabIndex = 30;
+            // 
+            // textBoxOffsetSequence
+            // 
+            textBoxOffsetSequence.Enabled = false;
+            textBoxOffsetSequence.Location = new Point(130, 271);
+            textBoxOffsetSequence.Name = "textBoxOffsetSequence";
+            textBoxOffsetSequence.Size = new Size(240, 23);
+            textBoxOffsetSequence.TabIndex = 32;
+            // 
+            // textBoxOffsetLength
+            // 
+            textBoxOffsetLength.Location = new Point(130, 300);
+            textBoxOffsetLength.Name = "textBoxOffsetLength";
+            textBoxOffsetLength.Size = new Size(80, 23);
+            textBoxOffsetLength.TabIndex = 34;
+            // 
+            // labelOffsetLength
+            // 
+            labelOffsetLength.AutoSize = true;
+            labelOffsetLength.ForeColor = Color.Green;
+            labelOffsetLength.Location = new Point(3, 303);
+            labelOffsetLength.Name = "labelOffsetLength";
+            labelOffsetLength.Size = new Size(56, 17);
+            labelOffsetLength.TabIndex = 35;
+            labelOffsetLength.Text = "偏移数量";
+            // 
+            // textBoxTrimBytes
+            // 
+            textBoxTrimBytes.Location = new Point(130, 326);
+            textBoxTrimBytes.Name = "textBoxTrimBytes";
+            textBoxTrimBytes.Size = new Size(80, 23);
+            textBoxTrimBytes.TabIndex = 36;
+            textBoxTrimBytes.TextChanged += textBoxTrimBytes_TextChanged;
+            // 
+            // labelTrimBytes
+            // 
+            labelTrimBytes.AutoSize = true;
+            labelTrimBytes.ForeColor = Color.Red;
+            labelTrimBytes.Location = new Point(3, 329);
+            labelTrimBytes.Name = "labelTrimBytes";
+            labelTrimBytes.Size = new Size(104, 17);
+            labelTrimBytes.TabIndex = 37;
+            labelTrimBytes.Text = "排除文件尾字节数";
+            // 
+            // textBoxTrimRepeatedByte
+            // 
+            textBoxTrimRepeatedByte.Location = new Point(338, 326);
+            textBoxTrimRepeatedByte.Name = "textBoxTrimRepeatedByte";
+            textBoxTrimRepeatedByte.Size = new Size(32, 23);
+            textBoxTrimRepeatedByte.TabIndex = 38;
+            // 
+            // labelTrimRepeatedByte
+            // 
+            labelTrimRepeatedByte.AutoSize = true;
+            labelTrimRepeatedByte.ForeColor = Color.Red;
+            labelTrimRepeatedByte.Location = new Point(216, 330);
+            labelTrimRepeatedByte.Name = "labelTrimRepeatedByte";
+            labelTrimRepeatedByte.Size = new Size(116, 17);
+            labelTrimRepeatedByte.TabIndex = 39;
+            labelTrimRepeatedByte.Text = "排除文件尾重复字节";
+            // 
+            // treeViewModes
+            // 
+            treeViewModes.Location = new Point(12, 41);
+            treeViewModes.Name = "treeViewModes";
+            treeViewModes.Size = new Size(265, 377);
+            treeViewModes.TabIndex = 8;
+            // 
+            // FileExtractor
+            // 
+            ClientSize = new Size(875, 757);
+            Controls.Add(treeViewModes);
+            Controls.Add(inputPanel);
+            Controls.Add(buttonClearOutput);
             Controls.Add(buttonExtract);
-            Controls.Add(labelOutputFormat);
-            Controls.Add(textBoxOutputFormat);
-            Controls.Add(labelMinRepeatCount);
-            Controls.Add(textBoxMinRepeatCount);
-            Controls.Add(labelEndSequence);
-            Controls.Add(textBoxEndSequence);
-            Controls.Add(labelStartSequence);
-            Controls.Add(textBoxStartSequence);
-            Controls.Add(labelEndAddress);
-            Controls.Add(textBoxEndAddress);
-            Controls.Add(labelStartAddress);
-            Controls.Add(textBoxStartAddress);
-            Controls.Add(radioButtonMode4);
-            Controls.Add(radioButtonMode3);
-            Controls.Add(radioButtonMode2);
-            Controls.Add(radioButtonMode1);
+            Controls.Add(richTextBoxOutput);
+            Controls.Add(buttonSelectFolder);
             Controls.Add(labelDirectoryPath);
             Controls.Add(textBoxDirectoryPath);
-            Controls.Add(buttonSelectFolder);
             ForeColor = Color.BlueViolet;
-            Margin = new Padding(4);
-            Name = "Form1";
+            MinimumSize = new Size(792, 551);
+            Name = "FileExtractor";
             Text = "万能二进制提取器";
+            inputPanel.ResumeLayout(false);
+            inputPanel.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
-
         }
-
-        #endregion
 
         private System.Windows.Forms.TextBox textBoxDirectoryPath;
         private System.Windows.Forms.Label labelDirectoryPath;
-        private System.Windows.Forms.RadioButton radioButtonMode1;
-        private System.Windows.Forms.RadioButton radioButtonMode2;
-        private System.Windows.Forms.RadioButton radioButtonMode3;
-        private System.Windows.Forms.RadioButton radioButtonMode4;
         private System.Windows.Forms.TextBox textBoxStartAddress;
         private System.Windows.Forms.Label labelStartAddress;
         private System.Windows.Forms.TextBox textBoxEndAddress;
@@ -337,11 +468,13 @@
         private System.Windows.Forms.Label labelStartSequence;
         private System.Windows.Forms.TextBox textBoxEndSequence;
         private System.Windows.Forms.Label labelEndSequence;
-        private System.Windows.Forms.TextBox textBoxMinRepeatCount;
-        private System.Windows.Forms.Label labelMinRepeatCount;
         private System.Windows.Forms.TextBox textBoxOutputFormat;
         private System.Windows.Forms.Label labelOutputFormat;
         private System.Windows.Forms.Button buttonExtract;
+        private System.Windows.Forms.Button buttonClearOutput;
         private System.Windows.Forms.RichTextBox richTextBoxOutput;
+        private System.Windows.Forms.TextBox textBoxHexAddress;
+        private System.Windows.Forms.Label labelHexAddress;
+        private System.Windows.Forms.Panel inputPanel;
     }
 }
