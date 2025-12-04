@@ -40,11 +40,19 @@ namespace UniversalFileExtractor
             TreeNode mode5 = new TreeNode("模式5:指定字符串之间提取");
             mode5.Tag = 5;
 
+            TreeNode mode6 = new TreeNode("模式6:无头有尾文件-字节序列模式");
+            mode6.Tag = 6;
+
+            TreeNode mode7 = new TreeNode("模式7:无头有尾文件-字符串模式");
+            mode7.Tag = 7;
+
             treeViewModes.Nodes.Add(mode1);
             treeViewModes.Nodes.Add(mode2);
             treeViewModes.Nodes.Add(mode3);
             treeViewModes.Nodes.Add(mode4);
             treeViewModes.Nodes.Add(mode5);
+            treeViewModes.Nodes.Add(mode6);
+            treeViewModes.Nodes.Add(mode7);
 
             treeViewModes.AfterSelect += TreeViewModes_AfterSelect;
         }
@@ -177,6 +185,12 @@ namespace UniversalFileExtractor
                 case 5:
                     ShowControlsForMode5();
                     break;
+                case 6:
+                    ShowControlsForMode6();
+                    break;
+                case 7:
+                    ShowControlsForMode7();
+                    break;
             }
 
             textBoxOutputFormat.Enabled = true;
@@ -263,6 +277,61 @@ namespace UniversalFileExtractor
             labelEndString.Visible = true;
 
             ShowCommonControls();
+        }
+
+        private void ShowControlsForMode6()
+        {
+            textBoxEndSequence.Enabled = true;
+            textBoxEndSequence.Visible = true;
+            labelEndSequence.Visible = true;
+
+            textBoxStartSequence.Enabled = false;
+            textBoxStartSequence.Visible = false;
+            labelStartSequence.Visible = false;
+
+            ShowMode6And7Controls();
+        }
+
+        private void ShowControlsForMode7()
+        {
+            textBoxEndString.Enabled = true;
+            textBoxEndString.Visible = true;
+            labelEndString.Visible = true;
+
+            textBoxStartString.Enabled = false;
+            textBoxStartString.Visible = false;
+            labelStartString.Visible = false;
+
+            ShowMode6And7Controls();
+        }
+
+        private void ShowMode6And7Controls()
+        {
+            radioButtonOffsetString.Enabled = false;
+            radioButtonOffsetString.Visible = false;
+            radioButtonOffsetSequence.Enabled = false;
+            radioButtonOffsetSequence.Visible = false;
+            textBoxOffsetString.Enabled = false;
+            textBoxOffsetString.Visible = false;
+            textBoxOffsetSequence.Enabled = false;
+            textBoxOffsetSequence.Visible = false;
+            textBoxOffsetLength.Enabled = false;
+            textBoxOffsetLength.Visible = false;
+            labelOffsetLength.Visible = false;
+
+            comboBoxTrimMode.Enabled = false;
+            comboBoxTrimMode.Visible = false;
+            labelTrimMode.Visible = false;
+            textBoxTrimBytes.Enabled = false;
+            textBoxTrimBytes.Visible = false;
+            labelTrimBytes.Visible = false;
+            textBoxTrimRepeatedByte.Enabled = false;
+            textBoxTrimRepeatedByte.Visible = false;
+            labelTrimRepeatedByte.Visible = false;
+
+            textBoxOutputFormat.Enabled = true;
+            textBoxOutputFormat.Visible = true;
+            labelOutputFormat.Visible = true;
         }
 
         private void ShowCommonControls()
@@ -521,12 +590,19 @@ namespace UniversalFileExtractor
                         startString = textBoxStartString.Text;
                         endString = textBoxEndString.Text;
                         break;
+                    case 6:
+                        extractMode = "end_sequence_only";
+                        break;
+                    case 7:
+                        extractMode = "end_string_only";
+                        endString = textBoxEndString.Text;
+                        break;
                     default:
                         break;
                 }
 
                 byte[] startSequenceBytes = Array.Empty<byte>();
-                if (selectedMode != 5)
+                if (selectedMode != 5 && selectedMode != 6 && selectedMode != 7)
                 {
                     string startSequenceInput = textBoxStartSequence.Text;
                     if (string.IsNullOrEmpty(startSequenceInput))
@@ -555,9 +631,16 @@ namespace UniversalFileExtractor
                 }
 
                 byte[]? endSequenceBytes = null;
-                if (selectedMode != 5)
+                if (selectedMode != 5 && selectedMode != 7)
                 {
                     string endSequenceInput = textBoxEndSequence.Text;
+                    if (selectedMode == 6 && string.IsNullOrEmpty(endSequenceInput))
+                    {
+                        MessageBox.Show("模式6需要结束字节序列，请输入。");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+
                     if (!string.IsNullOrEmpty(endSequenceInput))
                     {
                         try
@@ -578,11 +661,17 @@ namespace UniversalFileExtractor
                         }
                     }
                 }
-                else
+                else if (selectedMode == 5 || selectedMode == 7)
                 {
-                    if (string.IsNullOrEmpty(startString))
+                    if (selectedMode == 5 && string.IsNullOrEmpty(startString))
                     {
-                        MessageBox.Show("起始字符串为必填项，请输入。");
+                        MessageBox.Show("模式5需要起始字符串，请输入。");
+                        buttonExtract.Enabled = true;
+                        return;
+                    }
+                    else if (selectedMode == 7 && string.IsNullOrEmpty(endString))
+                    {
+                        MessageBox.Show("模式7需要结束字符串，请输入。");
                         buttonExtract.Enabled = true;
                         return;
                     }
@@ -592,96 +681,103 @@ namespace UniversalFileExtractor
                 byte[]? offsetSequence = null;
                 int offsetLength = 0;
 
-                if (!string.IsNullOrEmpty(textBoxOffsetLength.Text))
+                if (selectedMode >= 1 && selectedMode <= 5)
                 {
-                    if (!int.TryParse(textBoxOffsetLength.Text, out offsetLength) || offsetLength < 0)
+                    if (!string.IsNullOrEmpty(textBoxOffsetLength.Text))
                     {
-                        MessageBox.Show("偏移数量必须是一个有效的非负整数");
-                        buttonExtract.Enabled = true;
-                        return;
-                    }
+                        if (!int.TryParse(textBoxOffsetLength.Text, out offsetLength) || offsetLength < 0)
+                        {
+                            MessageBox.Show("偏移数量必须是一个有效的非负整数");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
 
-                    if (radioButtonOffsetString.Checked && !string.IsNullOrEmpty(textBoxOffsetString.Text))
-                    {
-                        offsetString = textBoxOffsetString.Text;
-                    }
-                    else if (radioButtonOffsetSequence.Checked && !string.IsNullOrEmpty(textBoxOffsetSequence.Text))
-                    {
-                        try
+                        if (radioButtonOffsetString.Checked && !string.IsNullOrEmpty(textBoxOffsetString.Text))
                         {
-                            offsetSequence = ParseStartSequence(textBoxOffsetSequence.Text);
+                            offsetString = textBoxOffsetString.Text;
                         }
-                        catch (FormatException ex)
+                        else if (radioButtonOffsetSequence.Checked && !string.IsNullOrEmpty(textBoxOffsetSequence.Text))
                         {
-                            MessageBox.Show($"偏移序列格式错误:{ex.Message}");
-                            buttonExtract.Enabled = true;
-                            return;
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"解析偏移序列时发生错误:{ex.Message}");
-                            buttonExtract.Enabled = true;
-                            return;
+                            try
+                            {
+                                offsetSequence = ParseStartSequence(textBoxOffsetSequence.Text);
+                            }
+                            catch (FormatException ex)
+                            {
+                                MessageBox.Show($"偏移序列格式错误:{ex.Message}");
+                                buttonExtract.Enabled = true;
+                                return;
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"解析偏移序列时发生错误:{ex.Message}");
+                                buttonExtract.Enabled = true;
+                                return;
+                            }
                         }
                     }
                 }
 
                 int trimBytes = 0;
-                if (!string.IsNullOrEmpty(textBoxTrimBytes.Text))
-                {
-                    if (!int.TryParse(textBoxTrimBytes.Text, out trimBytes) || trimBytes < 0)
-                    {
-                        MessageBox.Show("排除文件尾字节数必须是一个有效的非负整数");
-                        buttonExtract.Enabled = true;
-                        return;
-                    }
-                }
-
                 byte? trimRepeatedByte = null;
-                if (!string.IsNullOrEmpty(textBoxTrimRepeatedByte.Text))
+                string trimMode = "none";
+
+                if (selectedMode >= 1 && selectedMode <= 5)
                 {
-                    string trimByteText = textBoxTrimRepeatedByte.Text.Trim().ToUpper();
-                    if (trimByteText.Length == 2 && IsHex(trimByteText))
+                    if (!string.IsNullOrEmpty(textBoxTrimBytes.Text))
                     {
-                        try
+                        if (!int.TryParse(textBoxTrimBytes.Text, out trimBytes) || trimBytes < 0)
                         {
-                            trimRepeatedByte = Convert.ToByte(trimByteText, 16);
-                        }
-                        catch (FormatException)
-                        {
-                            MessageBox.Show("排除文件尾重复字节必须是有效的十六进制字节(00-FF)");
+                            MessageBox.Show("排除文件尾字节数必须是一个有效的非负整数");
                             buttonExtract.Enabled = true;
                             return;
                         }
                     }
-                    else
-                    {
-                        MessageBox.Show("排除文件尾重复字节格式错误，请输入两位十六进制数(如:00, FF, 1A)");
-                        buttonExtract.Enabled = true;
-                        return;
-                    }
-                }
 
-                string trimMode = "none";
-                if (comboBoxTrimMode.SelectedIndex >= 0)
-                {
-                    switch (comboBoxTrimMode.SelectedIndex)
+                    if (!string.IsNullOrEmpty(textBoxTrimRepeatedByte.Text))
                     {
-                        case 0:
-                            trimMode = "none";
-                            break;
-                        case 1:
-                            trimMode = "bytes_only";
-                            break;
-                        case 2:
-                            trimMode = "repeated_only";
-                            break;
-                        case 3:
-                            trimMode = "both_bytes_first";
-                            break;
-                        case 4:
-                            trimMode = "both_repeated_first";
-                            break;
+                        string trimByteText = textBoxTrimRepeatedByte.Text.Trim().ToUpper();
+                        if (trimByteText.Length == 2 && IsHex(trimByteText))
+                        {
+                            try
+                            {
+                                trimRepeatedByte = Convert.ToByte(trimByteText, 16);
+                            }
+                            catch (FormatException)
+                            {
+                                MessageBox.Show("排除文件尾重复字节必须是有效的十六进制字节(00-FF)");
+                                buttonExtract.Enabled = true;
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("排除文件尾重复字节格式错误，请输入两位十六进制数(如:00, FF, 1A)");
+                            buttonExtract.Enabled = true;
+                            return;
+                        }
+                    }
+
+                    if (comboBoxTrimMode.SelectedIndex >= 0)
+                    {
+                        switch (comboBoxTrimMode.SelectedIndex)
+                        {
+                            case 0:
+                                trimMode = "none";
+                                break;
+                            case 1:
+                                trimMode = "bytes_only";
+                                break;
+                            case 2:
+                                trimMode = "repeated_only";
+                                break;
+                            case 3:
+                                trimMode = "both_bytes_first";
+                                break;
+                            case 4:
+                                trimMode = "both_repeated_first";
+                                break;
+                        }
                     }
                 }
 
@@ -789,7 +885,7 @@ namespace UniversalFileExtractor
         private void Form1_Load(object sender, EventArgs e)
         {
             richTextBoxOutput.Text = "";
-        }      
+        }
 
         private void buttonClearOutput_Click(object sender, EventArgs e)
         {
@@ -842,31 +938,7 @@ namespace UniversalFileExtractor
 
         static byte[] ParseEndSequence(string endSequenceInput)
         {
-            if (string.IsNullOrEmpty(endSequenceInput))
-            {
-                return Array.Empty<byte>();
-            }
-
-            string[] parts = endSequenceInput.Split(' ');
-            List<byte> result = new List<byte>();
-            foreach (string part in parts)
-            {
-                if (part.Contains('*'))
-                {
-                    string[] subParts = part.Split('*');
-                    byte byteValue = Convert.ToByte(subParts[0].Replace(" ", ""), 16);
-                    int repeatCount = int.Parse(subParts[1]);
-                    for (int i = 0; i < repeatCount; i++)
-                    {
-                        result.Add(byteValue);
-                    }
-                }
-                else
-                {
-                    result.Add(Convert.ToByte(part.Replace(" ", ""), 16));
-                }
-            }
-            return result.ToArray();
+            return ParseStartSequence(endSequenceInput);
         }
 
         static long FindEndIndex(MemoryMappedViewAccessor accessor, long startIndex, byte[]? endSequence, byte[] startSequenceBytes, long fileSize)
@@ -1031,6 +1103,157 @@ namespace UniversalFileExtractor
                 if (!Directory.Exists(extractedDirectory))
                 {
                     Directory.CreateDirectory(extractedDirectory);
+                }
+                if (extractMode == "end_sequence_only")
+                {
+                    if (endSequence == null || endSequence.Length == 0)
+                    {
+                        progressCallback?.Invoke("结束字节序列不能为空\n");
+                        return 0;
+                    }
+
+                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
+                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
+                    {
+                        long lastEndIndex = 0;
+                        long currentEndIndex = 0;
+
+                        currentEndIndex = IndexOfSequence(accessor, endSequence, lastEndIndex, fileSize);
+                        if (currentEndIndex != -1)
+                        {
+                            do
+                            {
+                                long extractStart = lastEndIndex;
+                                long extractEnd = currentEndIndex + endSequence.Length;
+                                long extractLength = extractEnd - extractStart;
+
+                                if (extractLength > 0)
+                                {
+                                    byte[] extractedData = new byte[extractLength];
+                                    for (long i = 0; i < extractLength; i++)
+                                    {
+                                        extractedData[i] = accessor.ReadByte(extractStart + i);
+                                    }
+
+                                    extractedData = TrimFileEnd(extractedData, 0, null, "none");
+
+                                    string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                                    string newFilename = $"{baseFileName}_endseq_{extractedCount + 1}.{outputFormat}";
+                                    string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                                    File.WriteAllBytes(newFilePath, extractedData);
+
+                                    progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                                    extractedCount++;
+                                }
+
+                                lastEndIndex = extractEnd;
+                                currentEndIndex = IndexOfSequence(accessor, endSequence, lastEndIndex, fileSize);
+
+                            } while (currentEndIndex != -1 && lastEndIndex < fileSize);
+                        }
+
+                        if (lastEndIndex < fileSize)
+                        {
+                            long extractLength = fileSize - lastEndIndex;
+                            if (extractLength > 0)
+                            {
+                                byte[] extractedData = new byte[extractLength];
+                                for (long i = 0; i < extractLength; i++)
+                                {
+                                    extractedData[i] = accessor.ReadByte(lastEndIndex + i);
+                                }
+
+                                extractedData = TrimFileEnd(extractedData, 0, null, "none");
+
+                                string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                                string newFilename = $"{baseFileName}_endseq_{extractedCount + 1}.{outputFormat}";
+                                string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                                File.WriteAllBytes(newFilePath, extractedData);
+
+                                progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                                extractedCount++;
+                            }
+                        }
+                    }
+                    return extractedCount;
+                }
+                if (extractMode == "end_string_only")
+                {
+                    if (string.IsNullOrEmpty(endString))
+                    {
+                        progressCallback?.Invoke("结束字符串不能为空\n");
+                        return 0;
+                    }
+
+                    byte[] endStringBytes = Encoding.UTF8.GetBytes(endString);
+
+                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
+                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
+                    {
+                        long lastEndIndex = 0;
+                        long currentEndIndex = 0;
+
+                        currentEndIndex = IndexOfSequence(accessor, endStringBytes, lastEndIndex, fileSize);
+                        if (currentEndIndex != -1)
+                        {
+                            do
+                            {
+                                long extractStart = lastEndIndex;
+                                long extractEnd = currentEndIndex + endStringBytes.Length;
+                                long extractLength = extractEnd - extractStart;
+
+                                if (extractLength > 0)
+                                {
+                                    byte[] extractedData = new byte[extractLength];
+                                    for (long i = 0; i < extractLength; i++)
+                                    {
+                                        extractedData[i] = accessor.ReadByte(extractStart + i);
+                                    }
+
+                                    extractedData = TrimFileEnd(extractedData, 0, null, "none");
+
+                                    string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                                    string newFilename = $"{baseFileName}_endstr_{extractedCount + 1}.{outputFormat}";
+                                    string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                                    File.WriteAllBytes(newFilePath, extractedData);
+
+                                    progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                                    extractedCount++;
+                                }
+
+                                lastEndIndex = extractEnd;
+                                currentEndIndex = IndexOfSequence(accessor, endStringBytes, lastEndIndex, fileSize);
+
+                            } while (currentEndIndex != -1 && lastEndIndex < fileSize);
+                        }
+                        if (lastEndIndex < fileSize)
+                        {
+                            long extractLength = fileSize - lastEndIndex;
+                            if (extractLength > 0)
+                            {
+                                byte[] extractedData = new byte[extractLength];
+                                for (long i = 0; i < extractLength; i++)
+                                {
+                                    extractedData[i] = accessor.ReadByte(lastEndIndex + i);
+                                }
+
+                                extractedData = TrimFileEnd(extractedData, 0, null, "none");
+
+                                string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                                string newFilename = $"{baseFileName}_endstr_{extractedCount + 1}.{outputFormat}";
+                                string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                                File.WriteAllBytes(newFilePath, extractedData);
+
+                                progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                                extractedCount++;
+                            }
+                        }
+                    }
+                    return extractedCount;
                 }
                 if (extractMode == "string_between")
                 {
@@ -1261,6 +1484,7 @@ namespace UniversalFileExtractor
             }
             return -1;
         }
+
         static byte[] StringToByteArray(string hex)
         {
             if (string.IsNullOrEmpty(hex))
@@ -1296,10 +1520,12 @@ namespace UniversalFileExtractor
                 throw new FormatException($"无效的十六进制格式:{hex}", ex);
             }
         }
+
         private void textBoxTrimBytes_TextChanged(object sender, EventArgs e)
         {
 
         }
+
         private void labelHexAddress_Click(object sender, EventArgs e)
         {
 
