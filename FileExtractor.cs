@@ -1,4 +1,5 @@
 using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace UniversalFileExtractor
@@ -945,22 +946,392 @@ namespace UniversalFileExtractor
         {
             if (endSequence == null || endSequence.Length == 0)
             {
-                long nextStartIndex = IndexOfSequence(accessor, startSequenceBytes, startIndex + 1, fileSize);
-                return nextStartIndex == -1 ? fileSize : nextStartIndex;
+                long nextStartIndex = IndexOfSequence(accessor, startSequenceBytes, startIndex + startSequenceBytes.Length, fileSize);
+                return nextStartIndex == -1 ? -1 : nextStartIndex;
             }
             else
             {
                 long endIndex = IndexOfSequence(accessor, endSequence, startIndex + 1, fileSize);
 
-                if (endIndex != -1 && startSequenceBytes.SequenceEqual(endSequence))
+                if (endIndex == -1)
+                {
+                    return -1;
+                }
+
+                if (startSequenceBytes.SequenceEqual(endSequence))
                 {
                     return endIndex;
                 }
                 else
                 {
-                    return endIndex == -1 ? fileSize : endIndex + endSequence.Length;
+                    return endIndex + endSequence.Length;
                 }
             }
+        }
+
+        static int ExtractContent(string filePath, byte[] startSequenceBytes, byte[]? endSequence = null, string outputFormat = "bin",
+                           string extractMode = "all", string? startAddress = null, string? endAddress = null,
+                           string? startString = null, string? endString = null,
+                           string? offsetString = null, byte[]? offsetSequence = null, int offsetLength = 0,
+                           int trimBytes = 0, byte? trimRepeatedByte = null, string trimMode = "none",
+                           Action<string>? progressCallback = null)
+        {
+            outputFormat = outputFormat ?? "bin";
+            int extractedCount = 0;
+
+            try
+            {
+                var fileInfo = new FileInfo(filePath);
+                long fileSize = fileInfo.Length;
+                long startRange = 0;
+                long endRange = fileSize;
+                string? directoryName = Path.GetDirectoryName(filePath);
+                if (directoryName == null)
+                {
+                    progressCallback?.Invoke($"无法获取文件目录:{filePath}\n");
+                    return 0;
+                }
+
+                string extractedDirectory = Path.Combine(directoryName, "Extracted");
+                if (!Directory.Exists(extractedDirectory))
+                {
+                    Directory.CreateDirectory(extractedDirectory);
+                }
+
+                if (extractMode == "end_sequence_only")
+                {
+                    if (endSequence == null || endSequence.Length == 0)
+                    {
+                        progressCallback?.Invoke("结束字节序列不能为空\n");
+                        return 0;
+                    }
+
+                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
+                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
+                    {
+                        long lastEndIndex = 0;
+                        long currentEndIndex = 0;
+
+                        currentEndIndex = IndexOfSequence(accessor, endSequence, lastEndIndex, fileSize);
+                        if (currentEndIndex == -1)
+                        {
+                            progressCallback?.Invoke($"在{filePath}中未找到结束字节序列\n");
+                            return 0;
+                        }
+
+                        do
+                        {
+                            long extractStart = lastEndIndex;
+                            long extractEnd = currentEndIndex + endSequence.Length;
+                            long extractLength = extractEnd - extractStart;
+
+                            if (extractLength > 0)
+                            {
+                                byte[] extractedData = new byte[extractLength];
+                                for (long i = 0; i < extractLength; i++)
+                                {
+                                    extractedData[i] = accessor.ReadByte(extractStart + i);
+                                }
+
+                                extractedData = TrimFileEnd(extractedData, 0, null, "none");
+
+                                string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                                string newFilename = $"{baseFileName}_endseq_{extractedCount + 1}.{outputFormat}";
+                                string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                                File.WriteAllBytes(newFilePath, extractedData);
+
+                                progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                                extractedCount++;
+                            }
+
+                            lastEndIndex = extractEnd;
+                            currentEndIndex = IndexOfSequence(accessor, endSequence, lastEndIndex, fileSize);
+
+                        } while (currentEndIndex != -1 && lastEndIndex < fileSize);
+                    }
+                    return extractedCount;
+                }
+
+                if (extractMode == "end_string_only")
+                {
+                    if (string.IsNullOrEmpty(endString))
+                    {
+                        progressCallback?.Invoke("结束字符串不能为空\n");
+                        return 0;
+                    }
+
+                    byte[] endStringBytes = Encoding.UTF8.GetBytes(endString);
+
+                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
+                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
+                    {
+                        long lastEndIndex = 0;
+                        long currentEndIndex = 0;
+
+                        currentEndIndex = IndexOfSequence(accessor, endStringBytes, lastEndIndex, fileSize);
+                        if (currentEndIndex == -1)
+                        {
+                            progressCallback?.Invoke($"在{filePath}中未找到结束字符串\n");
+                            return 0;
+                        }
+
+                        do
+                        {
+                            long extractStart = lastEndIndex;
+                            long extractEnd = currentEndIndex + endStringBytes.Length;
+                            long extractLength = extractEnd - extractStart;
+
+                            if (extractLength > 0)
+                            {
+                                byte[] extractedData = new byte[extractLength];
+                                for (long i = 0; i < extractLength; i++)
+                                {
+                                    extractedData[i] = accessor.ReadByte(extractStart + i);
+                                }
+
+                                extractedData = TrimFileEnd(extractedData, 0, null, "none");
+
+                                string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                                string newFilename = $"{baseFileName}_endstr_{extractedCount + 1}.{outputFormat}";
+                                string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                                File.WriteAllBytes(newFilePath, extractedData);
+
+                                progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                                extractedCount++;
+                            }
+
+                            lastEndIndex = extractEnd;
+                            currentEndIndex = IndexOfSequence(accessor, endStringBytes, lastEndIndex, fileSize);
+
+                        } while (currentEndIndex != -1 && lastEndIndex < fileSize);
+                    }
+                    return extractedCount;
+                }
+
+                if (extractMode == "string_between")
+                {
+                    if (string.IsNullOrEmpty(startString))
+                    {
+                        progressCallback?.Invoke("起始字符串不能为空\n");
+                        return 0;
+                    }
+
+                    byte[] startStringBytes = Encoding.UTF8.GetBytes(startString);
+                    byte[]? endStringBytes = null;
+                    if (!string.IsNullOrEmpty(endString))
+                    {
+                        endStringBytes = Encoding.UTF8.GetBytes(endString);
+                    }
+
+                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
+                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
+                    {
+                        long startIndexInContent = 0;
+                        while (startIndexInContent < fileSize)
+                        {
+                            startIndexInContent = IndexOfSequence(accessor, startStringBytes, startIndexInContent, fileSize);
+                            if (startIndexInContent == -1)
+                            {
+                                if (extractedCount == 0)
+                                {
+                                    progressCallback?.Invoke($"在{filePath}中未找到起始字符串\n");
+                                }
+                                else
+                                {
+                                    progressCallback?.Invoke($"在{filePath}中未找到更多起始字符串\n");
+                                }
+                                break;
+                            }
+
+                            long endIndexInContent;
+
+                            if (endStringBytes != null)
+                            {
+                                endIndexInContent = IndexOfSequence(accessor, endStringBytes, startIndexInContent + startStringBytes.Length, fileSize);
+                                if (endIndexInContent == -1)
+                                {
+                                    progressCallback?.Invoke($"在{filePath}中未找到对应的结束字符串，跳过\n");
+                                    startIndexInContent += startStringBytes.Length;
+                                    continue;
+                                }
+                                else
+                                {
+                                    endIndexInContent += endStringBytes.Length;
+                                }
+                            }
+                            else
+                            {
+                                endIndexInContent = IndexOfSequence(accessor, startStringBytes, startIndexInContent + startStringBytes.Length, fileSize);
+                                if (endIndexInContent == -1)
+                                {
+                                    progressCallback?.Invoke($"在{filePath}中未找到下一个起始字符串，跳过\n");
+                                    startIndexInContent += startStringBytes.Length;
+                                    continue;
+                                }
+                            }
+
+                            long extractLength = endIndexInContent - startIndexInContent;
+
+                            if (extractLength <= 0)
+                            {
+                                progressCallback?.Invoke($"警告:提取长度为0，跳过\n");
+                                startIndexInContent += startStringBytes.Length;
+                                continue;
+                            }
+
+                            byte[] extractedData = new byte[extractLength];
+                            for (long i = 0; i < extractLength; i++)
+                            {
+                                extractedData[i] = accessor.ReadByte(startIndexInContent + i);
+                            }
+
+                            extractedData = TrimFileEnd(extractedData, trimBytes, trimRepeatedByte, trimMode);
+
+                            string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                            string newFilename = $"{baseFileName}_str_{extractedCount + 1}.{outputFormat}";
+                            string newFilePath = Path.Combine(extractedDirectory, newFilename);
+
+                            File.WriteAllBytes(newFilePath, extractedData);
+
+                            progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                            extractedCount++;
+
+                            startIndexInContent = endIndexInContent;
+                        }
+                    }
+                    return extractedCount;
+                }
+
+                if (startAddress != null && endAddress != null)
+                {
+                    long startIndex = Convert.ToInt64(startAddress.Replace("0x", ""), 16);
+                    long endIndex = Convert.ToInt64(endAddress.Replace("0x", ""), 16);
+                    if (startIndex > fileSize || endIndex > fileSize || startIndex > endIndex)
+                    {
+                        progressCallback?.Invoke($"指定地址范围{startAddress}-{endAddress}无效，无法提取。\n");
+                        return 0;
+                    }
+                    startRange = startIndex;
+                    endRange = endIndex;
+                }
+                else if (startAddress != null)
+                {
+                    long targetIndex = Convert.ToInt64(startAddress.Replace("0x", ""), 16);
+                    if (targetIndex > fileSize)
+                    {
+                        progressCallback?.Invoke($"指定地址{startAddress}超出文件范围，无法提取。\n");
+                        return 0;
+                    }
+                    if (extractMode == "before")
+                    {
+                        startRange = 0;
+                        endRange = targetIndex;
+                    }
+                    else if (extractMode == "after")
+                    {
+                        startRange = targetIndex;
+                        endRange = fileSize;
+                    }
+                    else
+                    {
+                        progressCallback?.Invoke("无效的提取模式参数\n");
+                        return 0;
+                    }
+                }
+
+                using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
+                using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
+                {
+                    long startIndexInContent = startRange;
+                    while (startIndexInContent < endRange)
+                    {
+                        startIndexInContent = IndexOfSequence(accessor, startSequenceBytes, startIndexInContent, endRange);
+                        if (startIndexInContent == -1)
+                        {
+                            if (extractedCount == 0)
+                            {
+                                progressCallback?.Invoke($"在{filePath}中未找到起始序列\n");
+                            }
+                            else
+                            {
+                                progressCallback?.Invoke($"在{filePath}中未找到更多起始序列\n");
+                            }
+                            break;
+                        }
+
+                        if (offsetLength > 0 && (offsetString != null || offsetSequence != null))
+                        {
+                            byte[]? offsetBytes = offsetSequence;
+                            if (offsetString != null)
+                            {
+                                offsetBytes = Encoding.UTF8.GetBytes(offsetString);
+                            }
+
+                            if (offsetBytes != null)
+                            {
+                                long offsetPosition = startIndexInContent + offsetLength;
+                                if (offsetPosition + offsetBytes.Length <= fileSize)
+                                {
+                                    bool offsetMatch = true;
+                                    for (int i = 0; i < offsetBytes.Length; i++)
+                                    {
+                                        if (accessor.ReadByte(offsetPosition + i) != offsetBytes[i])
+                                        {
+                                            offsetMatch = false;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!offsetMatch)
+                                    {
+                                        progressCallback?.Invoke($"偏移验证失败，跳过该位置\n");
+                                        startIndexInContent += startSequenceBytes.Length;
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+
+                        long endIndexInContent = FindEndIndex(accessor, startIndexInContent, endSequence, startSequenceBytes, endRange);
+                        if (endIndexInContent == -1)
+                        {
+                            progressCallback?.Invoke($"在{filePath}中未找到对应的结束序列，跳过\n");
+                            startIndexInContent += startSequenceBytes.Length;
+                            continue;
+                        }
+
+                        endIndexInContent = Math.Min(endIndexInContent, endRange);
+
+                        long extractLength = endIndexInContent - startIndexInContent;
+
+                        byte[] extractedData = new byte[extractLength];
+                        for (long i = 0; i < extractLength; i++)
+                        {
+                            extractedData[i] = accessor.ReadByte(startIndexInContent + i);
+                        }
+
+                        extractedData = TrimFileEnd(extractedData, trimBytes, trimRepeatedByte, trimMode);
+
+                        string baseFileName = Path.GetFileNameWithoutExtension(filePath);
+                        string newFilename = $"{baseFileName}_{extractedCount + 1}.{outputFormat}";
+                        string newFilePath = Path.Combine(extractedDirectory, newFilename);
+                        File.WriteAllBytes(newFilePath, extractedData);
+
+                        progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
+                        extractedCount++;
+
+                        startIndexInContent = endIndexInContent;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                progressCallback?.Invoke($"处理文件{filePath}时出错，错误信息:{ex}\n");
+            }
+
+            return extractedCount;
         }
 
         static byte[] TrimFileEnd(byte[] data, int trimBytes, byte? trimRepeatedByte, string trimMode)
@@ -1074,385 +1445,6 @@ namespace UniversalFileExtractor
             }
 
             return result;
-        }
-
-        static int ExtractContent(string filePath, byte[] startSequenceBytes, byte[]? endSequence = null, string outputFormat = "bin",
-                           string extractMode = "all", string? startAddress = null, string? endAddress = null,
-                           string? startString = null, string? endString = null,
-                           string? offsetString = null, byte[]? offsetSequence = null, int offsetLength = 0,
-                           int trimBytes = 0, byte? trimRepeatedByte = null, string trimMode = "none",
-                           Action<string>? progressCallback = null)
-        {
-            outputFormat = outputFormat ?? "bin";
-            int extractedCount = 0;
-
-            try
-            {
-                var fileInfo = new FileInfo(filePath);
-                long fileSize = fileInfo.Length;
-                long startRange = 0;
-                long endRange = fileSize;
-                string? directoryName = Path.GetDirectoryName(filePath);
-                if (directoryName == null)
-                {
-                    progressCallback?.Invoke($"无法获取文件目录: {filePath}\n");
-                    return 0;
-                }
-
-                string extractedDirectory = Path.Combine(directoryName, "Extracted");
-                if (!Directory.Exists(extractedDirectory))
-                {
-                    Directory.CreateDirectory(extractedDirectory);
-                }
-                if (extractMode == "end_sequence_only")
-                {
-                    if (endSequence == null || endSequence.Length == 0)
-                    {
-                        progressCallback?.Invoke("结束字节序列不能为空\n");
-                        return 0;
-                    }
-
-                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
-                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
-                    {
-                        long lastEndIndex = 0;
-                        long currentEndIndex = 0;
-
-                        currentEndIndex = IndexOfSequence(accessor, endSequence, lastEndIndex, fileSize);
-                        if (currentEndIndex != -1)
-                        {
-                            do
-                            {
-                                long extractStart = lastEndIndex;
-                                long extractEnd = currentEndIndex + endSequence.Length;
-                                long extractLength = extractEnd - extractStart;
-
-                                if (extractLength > 0)
-                                {
-                                    byte[] extractedData = new byte[extractLength];
-                                    for (long i = 0; i < extractLength; i++)
-                                    {
-                                        extractedData[i] = accessor.ReadByte(extractStart + i);
-                                    }
-
-                                    extractedData = TrimFileEnd(extractedData, 0, null, "none");
-
-                                    string baseFileName = Path.GetFileNameWithoutExtension(filePath);
-                                    string newFilename = $"{baseFileName}_endseq_{extractedCount + 1}.{outputFormat}";
-                                    string newFilePath = Path.Combine(extractedDirectory, newFilename);
-
-                                    File.WriteAllBytes(newFilePath, extractedData);
-
-                                    progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
-                                    extractedCount++;
-                                }
-
-                                lastEndIndex = extractEnd;
-                                currentEndIndex = IndexOfSequence(accessor, endSequence, lastEndIndex, fileSize);
-
-                            } while (currentEndIndex != -1 && lastEndIndex < fileSize);
-                        }
-
-                        if (lastEndIndex < fileSize)
-                        {
-                            long extractLength = fileSize - lastEndIndex;
-                            if (extractLength > 0)
-                            {
-                                byte[] extractedData = new byte[extractLength];
-                                for (long i = 0; i < extractLength; i++)
-                                {
-                                    extractedData[i] = accessor.ReadByte(lastEndIndex + i);
-                                }
-
-                                extractedData = TrimFileEnd(extractedData, 0, null, "none");
-
-                                string baseFileName = Path.GetFileNameWithoutExtension(filePath);
-                                string newFilename = $"{baseFileName}_endseq_{extractedCount + 1}.{outputFormat}";
-                                string newFilePath = Path.Combine(extractedDirectory, newFilename);
-
-                                File.WriteAllBytes(newFilePath, extractedData);
-
-                                progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
-                                extractedCount++;
-                            }
-                        }
-                    }
-                    return extractedCount;
-                }
-                if (extractMode == "end_string_only")
-                {
-                    if (string.IsNullOrEmpty(endString))
-                    {
-                        progressCallback?.Invoke("结束字符串不能为空\n");
-                        return 0;
-                    }
-
-                    byte[] endStringBytes = Encoding.UTF8.GetBytes(endString);
-
-                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
-                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
-                    {
-                        long lastEndIndex = 0;
-                        long currentEndIndex = 0;
-
-                        currentEndIndex = IndexOfSequence(accessor, endStringBytes, lastEndIndex, fileSize);
-                        if (currentEndIndex != -1)
-                        {
-                            do
-                            {
-                                long extractStart = lastEndIndex;
-                                long extractEnd = currentEndIndex + endStringBytes.Length;
-                                long extractLength = extractEnd - extractStart;
-
-                                if (extractLength > 0)
-                                {
-                                    byte[] extractedData = new byte[extractLength];
-                                    for (long i = 0; i < extractLength; i++)
-                                    {
-                                        extractedData[i] = accessor.ReadByte(extractStart + i);
-                                    }
-
-                                    extractedData = TrimFileEnd(extractedData, 0, null, "none");
-
-                                    string baseFileName = Path.GetFileNameWithoutExtension(filePath);
-                                    string newFilename = $"{baseFileName}_endstr_{extractedCount + 1}.{outputFormat}";
-                                    string newFilePath = Path.Combine(extractedDirectory, newFilename);
-
-                                    File.WriteAllBytes(newFilePath, extractedData);
-
-                                    progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
-                                    extractedCount++;
-                                }
-
-                                lastEndIndex = extractEnd;
-                                currentEndIndex = IndexOfSequence(accessor, endStringBytes, lastEndIndex, fileSize);
-
-                            } while (currentEndIndex != -1 && lastEndIndex < fileSize);
-                        }
-                        if (lastEndIndex < fileSize)
-                        {
-                            long extractLength = fileSize - lastEndIndex;
-                            if (extractLength > 0)
-                            {
-                                byte[] extractedData = new byte[extractLength];
-                                for (long i = 0; i < extractLength; i++)
-                                {
-                                    extractedData[i] = accessor.ReadByte(lastEndIndex + i);
-                                }
-
-                                extractedData = TrimFileEnd(extractedData, 0, null, "none");
-
-                                string baseFileName = Path.GetFileNameWithoutExtension(filePath);
-                                string newFilename = $"{baseFileName}_endstr_{extractedCount + 1}.{outputFormat}";
-                                string newFilePath = Path.Combine(extractedDirectory, newFilename);
-
-                                File.WriteAllBytes(newFilePath, extractedData);
-
-                                progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
-                                extractedCount++;
-                            }
-                        }
-                    }
-                    return extractedCount;
-                }
-                if (extractMode == "string_between")
-                {
-                    if (string.IsNullOrEmpty(startString))
-                    {
-                        progressCallback?.Invoke("起始字符串不能为空\n");
-                        return 0;
-                    }
-
-                    byte[] startStringBytes = Encoding.UTF8.GetBytes(startString);
-                    byte[]? endStringBytes = null;
-                    if (!string.IsNullOrEmpty(endString))
-                    {
-                        endStringBytes = Encoding.UTF8.GetBytes(endString);
-                    }
-                    using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
-                    using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
-                    {
-                        long startIndexInContent = 0;
-                        while (startIndexInContent < fileSize)
-                        {
-                            startIndexInContent = IndexOfSequence(accessor, startStringBytes, startIndexInContent, fileSize);
-                            if (startIndexInContent == -1)
-                            {
-                                progressCallback?.Invoke($"在{filePath}中未找到更多起始字符串\n");
-                                break;
-                            }
-
-                            long endIndexInContent;
-
-                            if (endStringBytes != null)
-                            {
-                                endIndexInContent = IndexOfSequence(accessor, endStringBytes, startIndexInContent + startStringBytes.Length, fileSize);
-                                if (endIndexInContent == -1)
-                                {
-                                    endIndexInContent = fileSize;
-                                    progressCallback?.Invoke($"在{filePath}中未找到对应的结束字符串，提取到文件末尾\n");
-                                }
-                                else
-                                {
-                                    endIndexInContent += endStringBytes.Length;
-                                }
-                            }
-                            else
-                            {
-                                endIndexInContent = IndexOfSequence(accessor, startStringBytes, startIndexInContent + startStringBytes.Length, fileSize);
-                                if (endIndexInContent == -1)
-                                {
-                                    endIndexInContent = fileSize;
-                                    progressCallback?.Invoke($"在{filePath}中未找到下一个起始字符串，提取到文件末尾\n");
-                                }
-                            }
-
-                            long extractLength = endIndexInContent - startIndexInContent;
-
-                            if (extractLength <= 0)
-                            {
-                                progressCallback?.Invoke($"警告:提取长度为0，跳过\n");
-                                startIndexInContent += startStringBytes.Length;
-                                continue;
-                            }
-
-                            byte[] extractedData = new byte[extractLength];
-                            for (long i = 0; i < extractLength; i++)
-                            {
-                                extractedData[i] = accessor.ReadByte(startIndexInContent + i);
-                            }
-
-                            extractedData = TrimFileEnd(extractedData, trimBytes, trimRepeatedByte, trimMode);
-
-                            string baseFileName = Path.GetFileNameWithoutExtension(filePath);
-                            string newFilename = $"{baseFileName}_str_{extractedCount + 1}.{outputFormat}";
-                            string newFilePath = Path.Combine(extractedDirectory, newFilename);
-
-                            File.WriteAllBytes(newFilePath, extractedData);
-
-                            progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
-                            extractedCount++;
-
-                            startIndexInContent = endIndexInContent;
-                        }
-                    }
-                    return extractedCount;
-                }
-
-                if (startAddress != null && endAddress != null)
-                {
-                    long startIndex = Convert.ToInt64(startAddress.Replace("0x", ""), 16);
-                    long endIndex = Convert.ToInt64(endAddress.Replace("0x", ""), 16);
-                    if (startIndex > fileSize || endIndex > fileSize || startIndex > endIndex)
-                    {
-                        progressCallback?.Invoke($"指定地址范围{startAddress}-{endAddress}无效，无法提取。\n");
-                        return 0;
-                    }
-                    startRange = startIndex;
-                    endRange = endIndex;
-                }
-                else if (startAddress != null)
-                {
-                    long targetIndex = Convert.ToInt64(startAddress.Replace("0x", ""), 16);
-                    if (targetIndex > fileSize)
-                    {
-                        progressCallback?.Invoke($"指定地址{startAddress}超出文件范围，无法提取。\n");
-                        return 0;
-                    }
-                    if (extractMode == "before")
-                    {
-                        startRange = 0;
-                        endRange = targetIndex;
-                    }
-                    else if (extractMode == "after")
-                    {
-                        startRange = targetIndex;
-                        endRange = fileSize;
-                    }
-                    else
-                    {
-                        progressCallback?.Invoke("无效的提取模式参数\n");
-                        return 0;
-                    }
-                }
-
-                using (var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read))
-                using (var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read))
-                {
-                    long startIndexInContent = startRange;
-                    while (startIndexInContent < endRange)
-                    {
-                        startIndexInContent = IndexOfSequence(accessor, startSequenceBytes, startIndexInContent, endRange);
-                        if (startIndexInContent == -1)
-                        {
-                            progressCallback?.Invoke($"在{filePath}中未找到更多起始序列\n");
-                            break;
-                        }
-
-                        if (offsetLength > 0 && (offsetString != null || offsetSequence != null))
-                        {
-                            byte[]? offsetBytes = offsetSequence;
-                            if (offsetString != null)
-                            {
-                                offsetBytes = Encoding.UTF8.GetBytes(offsetString);
-                            }
-
-                            if (offsetBytes != null)
-                            {
-                                long offsetPosition = startIndexInContent + offsetLength;
-                                if (offsetPosition + offsetBytes.Length <= fileSize)
-                                {
-                                    bool offsetMatch = true;
-                                    for (int i = 0; i < offsetBytes.Length; i++)
-                                    {
-                                        if (accessor.ReadByte(offsetPosition + i) != offsetBytes[i])
-                                        {
-                                            offsetMatch = false;
-                                            break;
-                                        }
-                                    }
-
-                                    if (!offsetMatch)
-                                    {
-                                        progressCallback?.Invoke($"偏移验证失败，跳过该位置\n");
-                                        startIndexInContent += startSequenceBytes.Length;
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-
-                        long endIndexInContent = FindEndIndex(accessor, startIndexInContent, endSequence, startSequenceBytes, endRange);
-                        endIndexInContent = Math.Min(endIndexInContent, endRange);
-
-                        long extractLength = endIndexInContent - startIndexInContent;
-
-                        byte[] extractedData = new byte[extractLength];
-                        for (long i = 0; i < extractLength; i++)
-                        {
-                            extractedData[i] = accessor.ReadByte(startIndexInContent + i);
-                        }
-
-                        extractedData = TrimFileEnd(extractedData, trimBytes, trimRepeatedByte, trimMode);
-
-                        string baseFileName = Path.GetFileNameWithoutExtension(filePath);
-                        string newFilename = $"{baseFileName}_{extractedCount + 1}.{outputFormat}";
-                        string newFilePath = Path.Combine(extractedDirectory, newFilename);
-                        File.WriteAllBytes(newFilePath, extractedData);
-
-                        progressCallback?.Invoke($"提取的内容保存为:{newFilePath}(长度:{extractedData.Length}字节)\n");
-                        extractedCount++;
-
-                        startIndexInContent = endIndexInContent;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                progressCallback?.Invoke($"处理文件{filePath}时出错，错误信息:{ex}\n");
-            }
-
-            return extractedCount;
         }
 
         static long IndexOfSequence(MemoryMappedViewAccessor accessor, byte[] sequence, long startOffset, long maxOffset)
